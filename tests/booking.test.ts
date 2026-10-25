@@ -118,3 +118,13 @@ describe("results table order (approved Q22)", () => {
     expect(rows.sort(compareWorstFirst).map((r) => r.id)).toEqual(["B2", "B1", "C", "R"]);
   });
 });
+
+describe("chat heads-up for new issues", () => {
+  it("lists a new Red raised by this turn", async () => {
+    const { newBlockingIssues } = await import("@/lib/chat/announce");
+    const before = await evaluate();
+    const after = await evaluate(bk001({ items: [item(), item({ sku: fv("PB-10"), description: fv("Power bank 10000mAh") }, "it-2")] }));
+    const lines = newBlockingIssues(before, after);
+    expect(lines.some((l) => l.startsWith("R-06 · Dangerous goods (Red): PB-10"))).toBe(true);
+  });
+});

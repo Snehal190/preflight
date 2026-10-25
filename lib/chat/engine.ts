@@ -6,7 +6,7 @@ import { ASSUMPTIONS, EMPTY_PALLET_KG, type AssumptionId } from "../reference/as
 import { Decimal, dec, sum } from "../num";
 import { fmtDateField, fmtDateSpoken, fmtGBP, fmtKg, fmtNum } from "../format";
 import { itemName } from "../rules/helpers";
-import { matchAllowed, parseAmount, type AmountKind, type ListKind } from "./normalize";
+import { matchAllowed, mentionsOtherCurrency, parseAmount, type AmountKind, type ListKind } from "./normalize";
 import { resolveDate } from "./dates";
 import { blank, isGiven, type ChatSession } from "./session";
 
@@ -189,6 +189,11 @@ function listOptions(list: ListKind): string {
 async function applyOp(s: ChatSession, opIn: ExtractOperation, messageId: string, deps: TurnDeps, voice: boolean, notes: Notes): Promise<void> {
   let op = opIn;
   const b = s.booking;
+  // An empty "set" carries nothing — except "no SKU", which is an answer.
+  if (op.op === "set" && !(op.value ?? "").trim()) {
+    if (op.field !== "sku") return;
+    op = { ...op, op: "unknown" };
+  }
   const field = op.field;
   const isItem = op.op === "add_item" || op.op === "remove_item" || op.itemRef !== null || (field !== null && ITEM_ONLY.has(field));
 
@@ -418,7 +423,10 @@ export function derive(s: ChatSession): string[] {
   const items = b.items;
   if (items.length && items.every((it) => it.cartons.value !== null)) {
     const total = items.reduce((n, it) => n + (it.cartons.value ?? 0), 0);
-    note(setDerived(rec(b), "cartons", total, items.map((it) => fmtNum(it.cartons.value!)).join(" + ")), `Total cartons: ${fmtNum(total)} (added up from the products).`);
+    note(
+      setDerived(rec(b), "cartons", total, `sum of product cartons: ${items.map((it) => fmtNum(it.cartons.value!)).join(" + ")}${items.length > 1 ? ` = ${fmtNum(total)}` : ""}`),
+      `Total cartons: ${fmtNum(total)} (added up from the products).`,
+    );
   }
   if (items.length && items.every((it) => it.quantity.value !== null && it.unitPrice.value !== null)) {
     const total = sum(items.map((it) => dec(it.quantity.value!).times(it.unitPrice.value!)));
@@ -606,9 +614,22 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
   const asked = s.lastQuestion ?? "";
   const trimmed = text.trim();
   const yesNo = AFFIRM.test(trimmed) ? "yes" : NEGATE.test(trimmed) ? "no" : null;
-  const pending = pendingYesNo(s, asked);
+  let pending = pendingYesNo(s, asked);
+  // Several yes/no questions open: the seller's words say which one ("use that code" → HS).
+  if (pending.length > 1) {
+    const hints: Record<YesNoKind, RegExp> = {
+      hs: /\b(code|hs|suggest\w*|use (it|that|this))\b/i,
+      sku: /\bsku\b/i,
+      date: /\b(date|day|monday|tuesday|wednesday|thursday|friday|saturday|sunday|ready)\b/i,
+      readback: /\b(all|everything|booking)\b/i,
+    };
+    const named = pending.filter((p) => hints[p.kind].test(trimmed));
+    if (named.length === 1) pending = named;
+  }
+  // Operations the AI invented from a bare "yes" (e.g. the HS code itself) don't count as details.
+  const realOps = verifiedOperations(text, ex).kept.length > 0;
   const yesNoNotes: string[] = [];
-  if (yesNo && (hasOps ? pending.length === 1 && pending[0].kind !== "readback" : short && pending.length >= 1)) {
+  if (yesNo && (realOps ? pending.length === 1 && pending[0].kind !== "readback" : short && pending.length >= 1)) {
     const q = pending[0];
     const yes = yesNo === "yes";
     if (q.kind === "readback") {
@@ -658,7 +679,7 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
         yesNoNotes.push(`**ASSUMPTION:** no SKU given, using ${sku}.`);
       }
     }
-    if (!hasOps) return say(nextStep(s, yesNoNotes, transcript));
+    if (!realOps) return say(nextStep(s, yesNoNotes, transcript));
   }
 
   if (ex.newShipment) {
@@ -668,11 +689,23 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
   // SKU question was asked: remember so it's asked only once.
   for (const it of s.booking.items) if (s.lastQuestion?.includes(`Does ${it.description.value ?? itemName(it)} have a SKU?`) && !s.flags.skuAsked.includes(it.itemId)) s.flags.skuAsked.push(it.itemId);
 
-  const { kept, discarded } = verifiedOperations(text, ex);
+  const verified = verifiedOperations(text, ex);
+  const discarded = verified.discarded;
+  // A message that names another currency sets no money values at all — never converted (spec §12.4).
+  const otherCurrency = mentionsOtherCurrency(text);
+  const MONEY_FIELDS = new Set(["unitPrice", "declaredValue", "currency"]);
+  const kept = otherCurrency ? verified.kept.filter((o) => !o.field || !MONEY_FIELDS.has(o.field)) : verified.kept;
   const notes: Notes = { recorded: [], problems: [], asks: [], changed: false, dateChanged: false, itemsChanged: false };
   const before = { cartons: s.booking.cartons, declared: s.booking.declaredValue };
   for (const op of kept) await applyOp(s, op, messageId, deps, transcript, notes);
-  for (const a of ex.ambiguities) notes.asks.push(`You said "${a.quote}" — ${a.about}. Which detail is that?`);
+  if (otherCurrency) notes.problems.push("Please give the value in GBP. I don't convert currencies, so I haven't changed any prices or values.");
+  // Ambiguities need a real quote from this message too.
+  const lc = text.toLowerCase().replace(/\s+/g, " ");
+  for (const a of ex.ambiguities) {
+    if (!a.quote.trim() || !lc.includes(a.quote.toLowerCase().replace(/\s+/g, " ").trim())) continue;
+    const about = a.about.trim().replace(/[.!?]+$/, "");
+    notes.asks.push(`You said "${a.quote.trim().replace(/[.!?]+$/, "")}" — ${about.charAt(0).toLowerCase()}${about.slice(1)}. Which detail is that?`);
+  }
   const derivedNotes = derive(s);
 
   // Discarded values (quote not in the message) are only worth mentioning if still missing.

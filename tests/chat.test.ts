@@ -236,7 +236,7 @@ describe("read-back and corrections (spec §12.6–12.7)", () => {
     let s = await fullBooking();
     const r = await turn(s, "Northfield Goods", [op("sellerName", "Northfield Goods", "Northfield Goods")]);
     expect(r.reply).toContain("Here's the full booking — please check every line:");
-    expect(r.reply).toContain("• Pallets: 3 · total cartons: 90 (worked out: 90)");
+    expect(r.reply).toContain("• Pallets: 3 · total cartons: 90 (worked out: sum of product cartons: 90)");
     const y = await turn(r.session, "yes that's right", []);
     expect(y.justConfirmed).toBe(true);
     s = y.session;
@@ -327,5 +327,47 @@ describe("no-SKU answers", () => {
     const r = await turn(s, "No SKU. Cheapest please", [op("sku", "No", "No SKU", { itemRef: "mugs" }), op("priority", "Cheapest", "Cheapest")]);
     expect(r.session.booking.items[0].sku).toMatchObject({ value: "ITEM-1", assumptionId: "A4" });
     expect(r.session.booking.priority.value).toBe("Cheapest");
+  });
+});
+
+describe("found by the live voice run", () => {
+  it("'24 to a box' and 'two pallets' are numbers", () => {
+    expect(parseAmount("24", "to a box", "int")).toMatchObject({ ok: true, value: "24" });
+    expect(parseAmount("24", "box", "int")).toMatchObject({ ok: true, value: "24" });
+    expect(parseAmount("two", null, "int")).toMatchObject({ ok: true, value: "2" });
+    expect(parseAmount("twenty-four", null, "int")).toMatchObject({ ok: true, value: "24" });
+    expect(parseAmount("a dozen", null, "int")).toMatchObject({ ok: true, value: "12" });
+  });
+
+  it("'10 euros' never becomes £10, even if the price arrives without its currency", async () => {
+    let s = (await turn(newChatSession("x"), "candles at £8", [op("description", "candles", "candles", { op: "add_item", itemRef: "candles" }), op("unitPrice", "8", "£8", { itemRef: "candles" })])).session;
+    const r = await turn(s, "Sorry, the price is actually 10 euros each.", [op("unitPrice", "10", "10 euros each", { itemRef: "candles" }), op("currency", "euros", "euros")]);
+    s = r.session;
+    expect(s.booking.items[0].unitPrice.value).toBe("8");
+    expect(r.reply).toContain("Please give the value in GBP");
+  });
+
+  it("an empty SKU answer means no SKU", async () => {
+    const s = (await turn(newChatSession("x"), "candles", [op("description", "candles", "candles", { op: "add_item", itemRef: "candles" })])).session;
+    const r = await turn(s, "There's no SKU.", [op("sku", "", "There's no SKU", { itemRef: "candles" })]);
+    expect(r.session.booking.items[0].sku).toMatchObject({ value: "ITEM-1", assumptionId: "A4" });
+    expect(r.reply).not.toContain("That was empty");
+  });
+
+  it("ignores an ambiguity whose quote isn't in this message", async () => {
+    const r = await turn(newChatSession("x"), "Yes, that's all correct.", [], { ambiguities: [{ about: "'4' could be pallets", quote: "Make it 4." }] });
+    expect(r.reply).not.toContain("Make it 4");
+  });
+});
+
+describe("several yes/no questions open", () => {
+  it("'Yes, use that code' answers the HS suggestion even when a SKU question is also open", async () => {
+    let s = (await turn(newChatSession("x"), "candles", [op("description", "candles", "candles", { op: "add_item", itemRef: "candles" })])).session;
+    s = (await turn(s, "don't know the HS code", [op("hsCode", null, "don't know the HS code", { op: "unknown", itemRef: "candles" })])).session;
+    s.lastQuestion = `${s.lastQuestion} Does candles have a SKU?`;
+    // The AI also "extracts" the code from the yes — its quote has no number, so it's discarded.
+    const r = await turn(s, "Yes, use that code.", [op("hsCode", "691200", "use that code", { itemRef: "candles" })]);
+    expect(r.session.booking.items[0].hsCode).toMatchObject({ value: "691200", source: "confirmed" });
+    expect(r.reply).not.toContain("couldn't match");
   });
 });
