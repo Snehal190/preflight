@@ -125,3 +125,21 @@ describe("quote verification (spec §12.3)", () => {
     expect(discarded).toHaveLength(1);
   });
 });
+
+describe("quote verification with number words", () => {
+  const base = { op: "increment" as const, field: "pallets" as const, itemRef: null, unit: null };
+  it("accepts 'a'/'two' for 1/2 but not an invented number", () => {
+    expect(verifyOperation("add a pallet", { ...base, value: "1", quote: "add a pallet" }).ok).toBe(true);
+    expect(verifyOperation("two more pallets", { ...base, value: "2", quote: "two more pallets" }).ok).toBe(true);
+    expect(verifyOperation("add a pallet", { ...base, value: "5", quote: "add a pallet" }).ok).toBe(false);
+  });
+});
+
+describe("transient API errors", () => {
+  it("retries a 504 DEADLINE_EXCEEDED once", async () => {
+    const t = vi.fn().mockRejectedValueOnce(new Error('{"error":{"code":504,"status":"DEADLINE_EXCEEDED"}}')).mockResolvedValueOnce(JSON.stringify({ city: "Paris" }));
+    setAiTransport(t);
+    expect(await callJson(S, { system: "x", parts: [{ text: "y" }] })).toEqual({ ok: true, data: { city: "Paris" } });
+    expect(t).toHaveBeenCalledTimes(2);
+  });
+});

@@ -205,6 +205,17 @@ export async function extractFromMessage(message: string, ctx: ExtractContext): 
 
 // --- Quote verification (spec §12.3): stops invented numbers.
 
+const NUMBER_WORDS: Record<string, number> = {
+  a: 1, an: 1, another: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6,
+  seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, dozen: 12,
+};
+
+/** "add a pallet" supports value 1; "two pallets" supports 2. */
+function numberWordIn(quote: string, value: string): boolean {
+  const n = Number(value.replace(/,/g, ""));
+  return quote.toLowerCase().split(/[^a-z]+/).some((w) => NUMBER_WORDS[w] === n);
+}
+
 function squash(s: string): string {
   return s.toLowerCase().replace(/[\s,]+/g, "");
 }
@@ -223,7 +234,7 @@ export function verifyOperation(message: string, op: ExtractOperation): { ok: tr
     return { ok: false, why: "quote not in message" };
   }
   if (op.value !== null && /\d/.test(op.value)) {
-    if (!squash(op.quote).includes(squash(op.value))) return { ok: false, why: "value not in quote" };
+    if (!squash(op.quote).includes(squash(op.value)) && !numberWordIn(op.quote, op.value)) return { ok: false, why: "value not in quote" };
   }
   return { ok: true };
 }

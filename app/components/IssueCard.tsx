@@ -46,7 +46,7 @@ interface Props {
 export function IssueCard({ r, busy, acknowledgedBy, onApply, onAnswer, onAcknowledge, onUnacknowledge, onSuggestHs }: Props) {
   const [name, setName] = useState("");
   const st = stateLabel(r);
-  const where = [...new Set(r.why.inputs.map((i) => locationText(i.location, i.sku)).filter(Boolean))];
+  const where = [...new Set(r.why.inputs.map((i) => locationText(i.location, i.sku, i.label)).filter(Boolean))];
   const isAmber = r.status === "fail" && r.severity === "amber";
   const border = r.status === "fail" && r.severity === "red" ? "border-bad/50" : isAmber ? "border-warn/50" : "border-ink/15";
 
@@ -157,7 +157,7 @@ export function IssueCard({ r, busy, acknowledgedBy, onApply, onAnswer, onAcknow
                     <td className="pr-2">{i.label}</td>
                     <td className="pr-2">{i.value}</td>
                     <td className="pr-2">{i.source ?? "—"}</td>
-                    <td>{locationText(i.location, i.sku) || "—"}</td>
+                    <td>{locationText(i.location, i.sku, i.label) || "—"}</td>
                   </tr>
                 ))}
               </tbody>

@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { z } from "zod";
 
 // Every Gemini call goes through here (spec §13): temperature 0, structured JSON with a response
@@ -40,6 +40,8 @@ const geminiTransport: AiTransport = async ({ system, parts, jsonSchema, signal 
       responseJsonSchema: jsonSchema,
       abortSignal: signal,
       httpOptions: { timeout: AI_TIMEOUT_MS },
+      // Extraction needs little reasoning; default thinking took > 20 s in testing (4.5 s at LOW).
+      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
     },
   });
   return res.text ?? "";
@@ -109,8 +111,11 @@ export async function callJson<T>(
       if (v.success) return { ok: true, data: v.data };
       last = { ok: false, reason: "malformed" };
     } catch (e) {
-      last = { ok: false, reason: e instanceof Error && e.message === "timeout" ? "timeout" : "error" };
-      if (last.reason === "error") console.warn("AI call failed:", e instanceof Error ? e.message.slice(0, 300) : e);
+      const msg = e instanceof Error ? e.message : String(e);
+      // Our own timeout, or the API's deadline/overload errors, get the one retry.
+      const transient = msg === "timeout" || /DEADLINE_EXCEEDED|"code":\s*(503|504)|UNAVAILABLE/.test(msg);
+      last = { ok: false, reason: transient ? "timeout" : "error" };
+      console.warn("AI call failed:", msg.slice(0, 300));
       // Only malformed output and timeouts are retried.
       if (last.reason !== "timeout") return last;
     }

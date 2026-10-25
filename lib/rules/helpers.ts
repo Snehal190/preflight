@@ -31,11 +31,12 @@ export function missingText(label: string, f: FieldValue<unknown>): string {
 export function itemName(it: Item): string {
   if (it.sku.value) return it.sku.value;
   const row = it.sku.location?.kind === "cell" ? it.sku.location.row : null;
-  return row ? `Item in row ${row}` : "Unnamed item";
+  if (row) return `Item in row ${row}`;
+  return it.description.value ?? "Unnamed item";
 }
 
 export function itemScope(it: Item): CheckScope {
-  return { kind: "item", itemId: it.itemId, sku: it.sku.value };
+  return { kind: "item", itemId: it.itemId, sku: it.sku.value ?? itemName(it) };
 }
 
 export const BOOKING_SCOPE: CheckScope = { kind: "booking" };
@@ -74,8 +75,9 @@ export function missingResult(ruleId: RuleId, scope: CheckScope, reasons: string
   });
 }
 
-export function locationText(loc: Location | null | undefined, sku?: string | null): string {
+export function locationText(loc: Location | null | undefined, sku?: string | null, label?: string): string {
   if (!loc) return "";
-  const base = loc.kind === "cell" ? `${loc.sheet} sheet, row ${loc.row}, column "${loc.column}"` : "chat";
+  // Uploads: sheet + row + column (+ SKU). Chat: the field name (spec §3.4).
+  const base = loc.kind === "cell" ? `${loc.sheet} sheet, row ${loc.row}, column "${loc.column}"` : `chat — ${label ?? "field"}`;
   return sku ? `${base} (SKU ${sku})` : base;
 }

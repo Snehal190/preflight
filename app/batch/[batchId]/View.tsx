@@ -11,7 +11,9 @@ import { StatusBadge } from "@/app/components/StatusBadge";
 export default function View() {
   const { batchId } = useParams<{ batchId: string }>();
   const [batch, setBatch] = useState<StoredBatch | null | undefined>(undefined);
-  useEffect(() => setBatch(loadBatch(batchId)), [batchId]);
+  useEffect(() => {
+    setBatch(loadBatch(batchId));
+  }, [batchId]);
 
   if (batch === undefined) return null;
   if (batch === null) return <p>We couldn&apos;t find these results in this browser. <Link className="underline" href="/upload">Upload again</Link>.</p>;

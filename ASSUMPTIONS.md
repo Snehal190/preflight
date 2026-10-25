@@ -72,3 +72,14 @@ unless the product owner approved it. Assumptions with an `A` ID are also in
   pages were built before the Neon step. Until `DATABASE_URL` arrives, bookings, versions and
   acknowledgements live in the browser's localStorage (`lib/client/store.ts`); share links, rate
   limiting and the DB caches are not built yet. (`lib/client/`)
+- **Chat interpretation choices (step 8).** To confirm:
+  - "next Thursday" = the first Thursday after today; a bare "Thursday" on a Thursday = today.
+    Every resolved date is read back with its weekday and must be confirmed.
+  - Fuzzy matching: Fuse.js proposes, but a match is accepted only within 1 typo (≤ 5 letters) or
+    2 typos (longer) and only if unique — so "Munich" is never read as Manchester.
+  - Weights: kg by default; lb, tonnes and grams are converted (shown in the reply); "tons" is
+    refused as ambiguous (UK/US/metric).
+  - Quote check: a number must appear in the seller's quote, either as digits or as a number word
+    ("add a pallet" supports 1).
+  - "No SKU" style answers never become a SKU; after asking once, ITEM-n is used (A4).
+  - Gemini calls use `thinkingLevel: LOW` (default thinking exceeded the 20 s deadline in testing).
