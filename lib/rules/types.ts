@@ -16,6 +16,8 @@ export interface CheckInput {
   value: string;
   source?: FieldSource;
   location?: Location | null;
+  /** SKU of the item this input belongs to (shown in "Where"). */
+  sku?: string | null;
 }
 
 export type BookingPatchField = "pallets" | "cartons" | "declaredValue";

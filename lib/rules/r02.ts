@@ -1,7 +1,7 @@
 import type { Booking } from "../types";
 import { Decimal, dec, sum } from "../num";
 import { fmtGBP, fmtNum } from "../format";
-import { BOOKING_SCOPE, computedInput, input, itemName, missingResult, missingText, ruleResult } from "./helpers";
+import { BOOKING_SCOPE, computedInput, input, itemName, missingResult, missingText, ruleResult, withSku } from "./helpers";
 import type { CheckInput, CheckResult } from "./types";
 
 // R-02 — declared value within 1% of item total (Red, per booking).
@@ -35,7 +35,7 @@ export function r02(b: Booking): CheckResult {
   if (b.declaredValue.value === null) reasons.push(missingText("Total declared value", b.declaredValue));
   for (const it of b.items) {
     const n = itemName(it);
-    inputs.push(input(`${n} quantity`, it.quantity), input(`${n} unit price`, it.unitPrice, it.unitPrice.value !== null ? fmtGBP(it.unitPrice.value) : undefined));
+    inputs.push(...withSku([input(`${n} quantity`, it.quantity), input(`${n} unit price`, it.unitPrice, it.unitPrice.value !== null ? fmtGBP(it.unitPrice.value) : undefined)], it));
     if (it.quantity.value === null) reasons.push(missingText(`${n} quantity`, it.quantity));
     if (it.unitPrice.value === null) reasons.push(missingText(`${n} unit price`, it.unitPrice));
   }

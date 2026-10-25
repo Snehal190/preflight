@@ -12,6 +12,11 @@ export function input<T>(label: string, f: FieldValue<T>, display?: string): Che
   return { label, value, source: f.source, location: f.location };
 }
 
+/** Tags item inputs with the item's SKU so "Where" can name it (spec §3.4). */
+export function withSku(inputs: CheckInput[], it: Item): CheckInput[] {
+  return inputs.map((i) => ({ ...i, sku: itemName(it) }));
+}
+
 export function computedInput(label: string, value: string): CheckInput {
   return { label, value, source: "derived", location: null };
 }
@@ -69,7 +74,8 @@ export function missingResult(ruleId: RuleId, scope: CheckScope, reasons: string
   });
 }
 
-export function locationText(loc: Location | null | undefined): string {
+export function locationText(loc: Location | null | undefined, sku?: string | null): string {
   if (!loc) return "";
-  return loc.kind === "cell" ? `${loc.sheet} sheet, row ${loc.row}, column "${loc.column}"` : "chat";
+  const base = loc.kind === "cell" ? `${loc.sheet} sheet, row ${loc.row}, column "${loc.column}"` : "chat";
+  return sku ? `${base} (SKU ${sku})` : base;
 }

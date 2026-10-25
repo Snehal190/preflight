@@ -1,6 +1,6 @@
 import type { Booking, Item } from "../types";
 import { fmtDateField, fmtDateLong } from "../format";
-import { BOOKING_SCOPE, input, itemName, itemScope, missingResult, missingText, ruleResult } from "./helpers";
+import { BOOKING_SCOPE, input, itemName, itemScope, missingResult, missingText, ruleResult, withSku } from "./helpers";
 import type { CheckResult } from "./types";
 
 // R-08 — warehouse needs an appointment (Amber, per booking).
@@ -42,7 +42,7 @@ export function r09(it: Item): CheckResult {
   const name = itemName(it);
   const scope = itemScope(it);
   const f = it.countryOfOrigin;
-  const inputs = [input("Country of origin", f)];
+  const inputs = withSku([input("Country of origin", f)], it);
   const formula = "Country of origin is filled in";
   if (f.value === null && f.raw && f.raw.trim() !== "") {
     return missingResult("R-09", scope, [missingText(`${name} country of origin`, f)], inputs, formula);

@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // ExcelJS reads uploads in Node route handlers; load it as-is rather than bundling it.
+  serverExternalPackages: ["exceljs"],
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

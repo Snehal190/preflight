@@ -1,26 +1,53 @@
 @import "tailwindcss";
 
+/* Design tokens from the UI brief. Full styling pass comes later; pages are functional for now. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #171e19;
+  --ink-2: #272727;
+  --sage: #b7c6c2;
+  --accent: #ffe17c;
+  --paper: #ffffff;
+  --red: #b42318;
+  --amber: #b54708;
+  --info: #475467;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-sage: var(--sage);
+  --color-accent: var(--accent);
+  --color-accent-ink: #c9a400;
+  --color-paper: var(--paper);
+  --color-bad: var(--red);
+  --color-warn: var(--amber);
+  --color-note: var(--info);
+  --font-display: var(--font-anton);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
+
+h1, h2 {
+  font-family: var(--font-anton);
+  text-transform: uppercase;
+  line-height: 0.95;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  background: var(--accent);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-ghost { background: transparent; }
+.btn-dark { background: var(--ink); color: #fff; }

@@ -64,3 +64,11 @@ unless the product owner approved it. Assumptions with an `A` ID are also in
   neither of its edits clears alone (otherwise "good fix + pointless edit" pairs crowd the top 3).
   The non-blocking R-05 preferred-carrier note isn't counted as a "new failure", but a fix that
   makes it appear says so in its evidence. (`lib/repair/index.ts`)
+- **Gemini model and key (local).** `GEMINI_MODEL=gemini-flash-latest`: chosen because it accepted the
+  structured-JSON schema in a live test; `gemini-2.5-flash` is closed to new users. The key is shared
+  event key #2 (#3 also valid; #1 rejected). Both live in `.env.local` only. Please confirm the model and
+  which key the team should use.
+- **Pages before the database (interim).** You asked for a localhost link to test, so the upload path
+  pages were built before the Neon step. Until `DATABASE_URL` arrives, bookings, versions and
+  acknowledgements live in the browser's localStorage (`lib/client/store.ts`); share links, rate
+  limiting and the DB caches are not built yet. (`lib/client/`)

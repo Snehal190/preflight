@@ -8,7 +8,7 @@ import {
   type DgCategory,
 } from "../reference/dangerousGoods";
 import type { CheckContext } from "./context";
-import { input, itemName, itemScope, missingResult, ruleResult } from "./helpers";
+import { input, itemName, itemScope, missingResult, ruleResult, withSku } from "./helpers";
 import type { CheckResult } from "./types";
 
 // R-06 — no lithium batteries, aerosols or flammable liquids (Red, per item). Spec §6 R-06.
@@ -25,7 +25,7 @@ export function r06AnswerKey(it: Item): string {
 export function r06(it: Item, ctx: CheckContext): CheckResult {
   const name = itemName(it);
   const scope = itemScope(it);
-  const inputs = [input("Description", it.description), input("SKU", it.sku), input("HS code", it.hsCode)];
+  const inputs = withSku([input("Description", it.description), input("SKU", it.sku), input("HS code", it.hsCode)], it);
   const desc = it.description.value?.trim();
   if (!desc) {
     return missingResult("R-06", scope, [`${name}: description is blank, so we can't check it for dangerous goods.`], inputs, FORMULA, `Add a description for ${name}.`);
@@ -36,7 +36,8 @@ export function r06(it: Item, ctx: CheckContext): CheckResult {
     noApplyReason: "Dangerous goods need your own action.",
   };
   const hits = scanKeywords(`${desc} ${it.sku.value ?? ""}`);
-  const red = hits.find((h) => effectiveTier(h) === "red");
+  // Cite the most specific matching term ("power bank" rather than "mah").
+  const red = hits.filter((h) => effectiveTier(h) === "red").sort((a, b) => b.term.length - a.term.length)[0];
   const ai = ctx.dgAi?.available ? ctx.dgAi.byItemId[it.itemId] : undefined;
   const negated = hits.filter((h) => h.negatedBy).map((h) => `"${h.term}" cancelled by "${h.negatedBy}"`);
   const aiInputs = ai ? [{ label: "AI review", value: `${ai.category} (${ai.confidence}) — ${ai.reason}` }] : [];

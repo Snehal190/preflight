@@ -398,3 +398,12 @@ describe("whole-booking behaviour", () => {
     expect(results.some((r) => r.id === "INFO:zero-price:it-1")).toBe(true);
   });
 });
+
+describe("R-06 wording", () => {
+  it("cites the most specific trigger word", () => {
+    const b = bk001({ items: [item({ description: fv("Portable power bank 10000mAh") })] });
+    expect(runChecks(b, ctx).results.find((r) => r.ruleId === "R-06")!.found).toBe(
+      'MUG-01: "Portable power bank 10000mAh" contains "power bank", which means a lithium battery.',
+    );
+  });
+});

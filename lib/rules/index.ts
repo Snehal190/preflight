@@ -137,7 +137,8 @@ export function summarise(results: CheckResult[], acknowledged: readonly string[
   const mustFix = results.filter(isBlocking).length;
   const toCheck = results.filter((r) => needsAcknowledgement(r) && !ack.has(r.id)).length;
   const counts = {
-    red: results.filter((r) => r.status === "fail" && r.severity === "red").length,
+    // Blocking Reds only: the non-blocking R-05 preferred-carrier note is shown but not counted.
+    red: results.filter((r) => r.status === "fail" && r.severity === "red" && !r.nonBlocking).length,
     amber: results.filter(needsAcknowledgement).length,
     info: results.filter((r) => r.severity === "info").length,
     missing: results.filter((r) => r.status === "missing_data").length,

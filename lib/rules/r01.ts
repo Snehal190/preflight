@@ -1,7 +1,7 @@
 import type { Item } from "../types";
 import type { CheckContext } from "./context";
 import type { CheckResult } from "./types";
-import { input, itemName, itemScope, missingResult, missingText, ruleResult } from "./helpers";
+import { input, itemName, itemScope, missingResult, missingText, ruleResult, withSku } from "./helpers";
 import { infoResult } from "./info";
 
 // R-01 — HS code at least 6 digits (Red, per item). Blank is Red even though the template's
@@ -14,7 +14,7 @@ export function r01(it: Item, ctx: CheckContext): CheckResult[] {
   const desc = it.description.value ? ` — ${it.description.value}` : "";
   const scope = itemScope(it);
   const hs = it.hsCode;
-  const inputs = [input("HS code", hs)];
+  const inputs = withSku([input("HS code", hs)], it);
   const out: CheckResult[] = [];
 
   const suggestion = ctx.hsSuggestions?.[it.itemId];

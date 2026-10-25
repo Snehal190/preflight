@@ -4,7 +4,7 @@ import { fmtGBP, fmtKg, fmtNum } from "../format";
 import { carrierById } from "../reference/carriers";
 import { carrierWeightLine, ceilDiv, fmtKg1, type CarrierAnalysis } from "../carrier";
 import type { CheckContext } from "./context";
-import { BOOKING_SCOPE, computedInput, input, itemName, missingResult, missingText, ruleResult } from "./helpers";
+import { BOOKING_SCOPE, computedInput, input, itemName, missingResult, missingText, ruleResult, withSku } from "./helpers";
 import type { CheckInput, CheckResult } from "./types";
 
 /** Σ unit weight × quantity; null if any item lacks either. Zero items → 0. */
@@ -154,7 +154,7 @@ export function r07(b: Booking): CheckResult {
   if (b.grossWeightKg.value === null) reasons.push(missingText("Total gross weight", b.grossWeightKg));
   for (const it of b.items) {
     const n = itemName(it);
-    inputs.push(input(`${n} unit weight (kg)`, it.unitWeightKg), input(`${n} quantity`, it.quantity));
+    inputs.push(...withSku([input(`${n} unit weight (kg)`, it.unitWeightKg), input(`${n} quantity`, it.quantity)], it));
     if (it.unitWeightKg.value === null) reasons.push(missingText(`${n} unit weight`, it.unitWeightKg));
     if (it.quantity.value === null) reasons.push(missingText(`${n} quantity`, it.quantity));
   }
