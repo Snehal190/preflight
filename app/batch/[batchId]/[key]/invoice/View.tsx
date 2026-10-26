@@ -251,7 +251,7 @@ export default function View() {
         </Link>
         <p className="eyebrow">Commercial invoice</p>
         <h1 className="text-[34px] sm:text-[40px]">Your invoice for {bk.entry.label}</h1>
-        <p className="text-ink-2">Everything from your booking is filled in. Add the details we don&apos;t have, then save it as a PDF.</p>
+        <p className="text-ink-2">Everything from your booking is filled in. Add the details we don&apos;t have, then print it.</p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
@@ -290,7 +290,7 @@ export default function View() {
           </label>
           <Field label="Reason for export" value={extra.reasonForExport} onChange={set("reasonForExport")} required />
           <button type="button" className="btn w-full" onClick={() => window.print()}>
-            Save as PDF or print
+            Print
           </button>
           <p className="text-xs text-ink-3">
             VAT is shown as 0% because exports of goods from the UK are normally zero-rated. <b>ASSUMPTION:</b> this is a direct export; check with your accountant if not.
