@@ -1,15 +1,18 @@
 import type { Booking, FieldValue, Item } from "../types";
 import type { ChatFlags } from "./session";
+import { fmtDateLong, fmtGBP, fmtNum } from "../format";
 
 // The "What to tell us" reference block beside the mic: everything the seller needs to say,
 // ticked off as it's captured (from the booking itself, so it can't drift from the checks).
 
-export type CheckState = "done" | "todo" | "unknown";
+export type CheckState = "done" | "todo" | "unknown" | "problem";
 
 export interface ChecklistItem {
   label: string;
   example: string;
   state: CheckState;
+  /** What the seller actually gave (shown instead of the example once it's in). */
+  value: string | null;
   optional?: boolean;
 }
 
@@ -27,51 +30,71 @@ function forProducts(items: Item[], field: keyof Item, declined: string[], key: 
   return "todo";
 }
 
-export function tellUsChecklist(b: Booking, flags: ChatFlags): ChecklistGroup[] {
+function show(f: FieldValue<unknown>): string | null {
+  if (f.value === null) return null;
+  return typeof f.value === "number" ? fmtNum(f.value) : String(f.value);
+}
+
+/**
+ * `problems` marks fields a check has flagged (from the results), so a captured-but-wrong value
+ * shows as a problem rather than a tick.
+ */
+export function tellUsChecklist(b: Booking, flags: ChatFlags, problems: Record<string, "bad" | "warn"> = {}): ChecklistGroup[] {
   const d = flags.declined;
+  const values = (field: keyof Item, fmt: (v: string) => string = (v) => v) => {
+    const vs = b.items.map((it) => show(it[field] as FieldValue<unknown>)).filter((v): v is string => v !== null).map(fmt);
+    return vs.length ? vs.join(" · ") : null;
+  };
   const one = (f: FieldValue<unknown>, key: string): CheckState => (has(f) ? "done" : d.includes(key) ? "unknown" : "todo");
   const p = (field: keyof Item, key = String(field)) => forProducts(b.items, field, d, key);
   const gross: CheckState = has(b.grossWeightKg) ? "done" : flags.grossUnknown ? "unknown" : "todo";
+  const it = (label: string, example: string, state: CheckState, value: string | null, field?: string, optional = false): ChecklistItem => ({
+    label,
+    example,
+    state: field && problems[field] && state !== "todo" ? "problem" : state,
+    value,
+    ...(optional ? { optional } : {}),
+  });
   const groups: ChecklistGroup[] = [
     {
       title: "Route",
       items: [
-        { label: "Collection city", example: "London, Manchester, Birmingham or Leeds", state: one(b.originCity, "originCity") },
-        { label: "Destination city", example: "Berlin, Frankfurt, Hamburg, Paris, Lyon, Amsterdam or Rotterdam", state: one(b.destinationCity, "destinationCity") },
+        it("Collection city", "London, Manchester, Birmingham or Leeds", one(b.originCity, "originCity"), show(b.originCity)),
+        it("Destination city", "Berlin, Frankfurt, Hamburg, Paris, Lyon, Amsterdam or Rotterdam", one(b.destinationCity, "destinationCity"), show(b.destinationCity)),
       ],
     },
     {
       title: "Each product",
       items: [
-        { label: "What it is", example: "“ceramic coffee mugs”", state: b.items.length && b.items.every((it) => has(it.description)) ? "done" : "todo" },
-        { label: "How many units", example: "“1,080 mugs”", state: p("quantity") },
-        { label: "Price per unit (£)", example: "“£5 each”", state: p("unitPrice") },
-        { label: "Units per box", example: "“12 to a box”", state: p("unitsPerCarton") },
-        { label: "Weight of one unit", example: "“0.5 kg each” (or a box weight)", state: p("unitWeightKg") },
-        { label: "Customs (HS) code", example: "“691200” — or say you don't know", state: p("hsCode") },
-        { label: "Country where it's made", example: "“made in the UK”", state: p("countryOfOrigin") },
-        { label: "SKU", example: "“MUG-01”", state: p("sku"), optional: true },
+        it("What it is", "“ceramic coffee mugs”", b.items.length && b.items.every((x) => has(x.description)) ? "done" : "todo", values("description"), "description"),
+        it("How many units", "“1,080 mugs”", p("quantity"), values("quantity"), "quantity"),
+        it("Price per unit (£)", "“£5 each”", p("unitPrice"), values("unitPrice", fmtGBP)),
+        it("Units per box", "“12 to a box”", p("unitsPerCarton"), values("unitsPerCarton"), "cartons"),
+        it("Weight of one unit", "“0.5 kg each” (or a box weight)", p("unitWeightKg"), values("unitWeightKg", (v) => `${v} kg`)),
+        it("Customs (HS) code", "“691200” — or say you don't know", p("hsCode"), values("hsCode"), "hsCode"),
+        it("Country where it's made", "“made in the UK”", p("countryOfOrigin"), values("countryOfOrigin"), "countryOfOrigin"),
+        it("SKU", "“MUG-01”", p("sku"), values("sku"), undefined, true),
       ],
     },
     {
       title: "Packing",
       items: [
-        { label: "Number of pallets", example: "“on 3 pallets”", state: one(b.pallets, "pallets") },
-        { label: "Total weight", example: "“620 kg in total”, including boxes and pallets", state: gross },
+        it("Number of pallets", "“on 3 pallets”", one(b.pallets, "pallets"), show(b.pallets), "pallets"),
+        it("Total weight", "“620 kg in total”, including boxes and pallets", gross, b.grossWeightKg.value ? `${fmtNum(b.grossWeightKg.value)} kg` : null, "grossWeightKg"),
       ],
     },
     {
       title: "Delivery",
       items: [
-        { label: "Ready-to-ship date", example: "“ready next Thursday”", state: one(b.readyDate, "readyDate") },
-        { label: "Warehouse or business address", example: "“an Amazon warehouse” / “a shop”", state: one(b.destinationType, "destinationType") },
+        it("Ready-to-ship date", "“ready next Thursday”", one(b.readyDate, "readyDate"), b.readyDate.value ? fmtDateLong(b.readyDate.value) : null, "readyDate"),
+        it("Warehouse or business address", "“an Amazon warehouse” / “a shop”", one(b.destinationType, "destinationType"), show(b.destinationType)),
         ...(b.destinationType.value === "Warehouse"
-          ? [{ label: "Delivery slot booked?", example: "“slot booked” / “not yet”", state: one(b.appointmentBooked, "appointmentBooked") }]
+          ? [it("Delivery slot booked?", "“slot booked” / “not yet”", one(b.appointmentBooked, "appointmentBooked"), show(b.appointmentBooked), "appointmentBooked")]
           : []),
-        { label: "What matters most", example: "cheapest, fastest, most reliable or balanced", state: one(b.priority, "priority") },
+        it("What matters most", "cheapest, fastest, most reliable or balanced", one(b.priority, "priority"), show(b.priority)),
       ],
     },
-    { title: "You", items: [{ label: "Seller (company) name", example: "“Northfield Goods”", state: one(b.sellerName, "sellerName") }] },
+    { title: "You", items: [it("Seller (company) name", "“Northfield Goods”", one(b.sellerName, "sellerName"), show(b.sellerName))] },
   ];
   return groups;
 }

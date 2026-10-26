@@ -356,12 +356,14 @@ async function applyOp(s: ChatSession, opIn: ExtractOperation, messageId: string
     notes.changed = notes.itemsChanged = true;
     return;
   }
+  // "Added a product: X" already said it; don't repeat "Product: X".
+  const sameDescription = field === "description" && it.description.value === v.value;
   rec(it)[field] = stated(v.value, op.value ?? "", messageId);
   if (field === "hsCode") it.hsWasNumeric = false;
   s.flags.declined = s.flags.declined.filter((d) => d !== key);
   notes.changed = notes.itemsChanged = true;
   const shown = spec.kind.kind === "amount" && spec.kind.amount === "int" ? spoken(String(v.value), voice) : v.shown;
-  notes.recorded.push(`${field === "description" ? "Product" : `${name} ${spec.label}`}: ${shown}${v.note ? ` (${v.note})` : ""}`);
+  if (!sameDescription) notes.recorded.push(`${field === "description" ? "Product" : `${name} ${spec.label}`}: ${shown}${v.note ? ` (${v.note})` : ""}`);
 }
 
 // --- Derivations (spec §12.5): only "derived"/"assumed" values are ever recomputed.
@@ -798,38 +800,47 @@ function resolveIssue(s: ChatSession, a: IssueAction, yes: boolean, messageId: s
   }
 }
 
-/** Questions for this turn (max 3): what we asked, problems found, then missing details. */
+/** Questions for this turn (max 3): what we asked, problems found (must-fix first), then missing details. */
 function nextStep(s: ChatSession, head: string[], voice: boolean, today: string, asks: string[] = [], dateJustSet = false): string {
   const questions: string[] = [...asks];
   let yesNoOpen = false;
-  if (s.flags.pendingHs) {
+
+  // Problems the checks found (spec: show where they went wrong). Every new one is listed; the most
+  // serious are asked as questions first.
+  const ctx = contextFor(s.state, today);
+  const report = runChecks(s.booking, ctx);
+  const results = withFixes(report, suggestFixes(s.booking, ctx, report), s.booking);
+  const issues = issueQuestions(results, s.booking, s.state.acknowledged.map((a) => a.id));
+  const newlySpotted = issues.filter((q) => !s.flags.issuesListed.includes(q.signature));
+  for (const q of newlySpotted) s.flags.issuesListed.push(q.signature);
+  s.flags.pendingIssue = null;
+  // A fix we're offering may also clear other problems (e.g. a quantity typo explains a weight gap).
+  const clearedByOffer = new Set<string>();
+  for (const q of issues) {
+    if (questions.length >= 3) break;
+    if (s.flags.issuesAsked.includes(q.signature) || clearedByOffer.has(q.ruleId)) continue;
+    if (q.action) {
+      if (yesNoOpen) continue; // one yes/no at a time keeps "yes" unambiguous
+      s.flags.pendingIssue = { resultId: q.resultId, prompt: q.text, action: q.action };
+      yesNoOpen = true;
+      if (q.action.kind === "fix") for (const r of q.action.clears) clearedByOffer.add(r);
+    }
+    questions.push(q.text);
+    s.flags.issuesAsked.push(q.signature);
+  }
+
+  if (s.flags.pendingHs && questions.length < 3 && !yesNoOpen) {
     const it = s.booking.items.find((x) => x.itemId === s.flags.pendingHs!.itemId);
     questions.push(
       `**Suggestion — please verify; you are legally responsible for the code:** HS ${s.flags.pendingHs.code} for ${it?.description.value ?? "that product"} (${s.flags.pendingHs.reason}). Shall I use it?`,
     );
     yesNoOpen = true;
   }
-  if (dateJustSet && s.booking.readyDate.value && !s.flags.dateConfirmed) {
-    questions.unshift(`Ready to ship ${fmtDateSpoken(s.booking.readyDate.value)} (${fmtDateField(s.booking.readyDate.value)}) — correct?`);
+  // Read a new date back with its weekday — unless it's already in the past (that's asked above).
+  const ready = s.booking.readyDate.value;
+  if (dateJustSet && ready && ready >= today && !s.flags.dateConfirmed && !yesNoOpen && questions.length < 3) {
+    questions.unshift(`Ready to ship ${fmtDateSpoken(ready)} (${fmtDateField(ready)}) — correct?`);
     yesNoOpen = true;
-  }
-
-  // Problems the checks found, asked once each in plain words (spec: say where they went wrong).
-  const ctx = contextFor(s.state, today);
-  const report = runChecks(s.booking, ctx);
-  const results = withFixes(report, suggestFixes(s.booking, ctx, report), s.booking);
-  const issues = issueQuestions(results, s.booking, s.state.acknowledged.map((a) => a.id));
-  s.flags.pendingIssue = null;
-  for (const q of issues) {
-    if (questions.length >= 3) break;
-    if (s.flags.issuesAsked.includes(q.signature)) continue;
-    if (q.action) {
-      if (yesNoOpen) continue; // one yes/no at a time keeps "yes" unambiguous
-      s.flags.pendingIssue = { resultId: q.resultId, prompt: q.text, action: q.action };
-      yesNoOpen = true;
-    }
-    questions.push(q.text);
-    s.flags.issuesAsked.push(q.signature);
   }
 
   for (const m of missingQuestions(s)) {
@@ -837,6 +848,9 @@ function nextStep(s: ChatSession, head: string[], voice: boolean, today: string,
     questions.push(m.text);
   }
   const parts = [...head];
+  if (newlySpotted.length) {
+    parts.push(`**I spotted ${newlySpotted.length === 1 ? "one thing" : `${newlySpotted.length} things`} to fix:**\n${newlySpotted.map((q) => `• ${q.title} — ${q.found}`).join("\n")}`);
+  }
   if (questions.length) {
     parts.push(questions.slice(0, 3).map((q, i) => (questions.length > 1 ? `${i + 1}. ${q}` : q)).join("\n"));
     s.lastQuestion = questions.slice(0, 3).join(" ");

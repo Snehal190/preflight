@@ -492,3 +492,41 @@ describe("plain yes variants", () => {
     }
   });
 });
+
+describe("the Harbour Home Goods speech (reported by the product owner)", () => {
+  const SPEECH = "Hi, this is Harbour Home Goods. I'm sending 1,800 ceramic dinner plates from Birmingham to Hamburg. They're £6 each, packed 12 to a box, 90 boxes, on 2 pallets. Each plate weighs 0.8 kilos and the whole shipment weighs 900 kilos. The HS code is 69120 and they're made in China. It's ready on the 20th of October. Cheapest please. It's going to a warehouse and we haven't booked a delivery slot yet.";
+  const P = "ceramic dinner plates";
+  const ops = [
+    op("sellerName", "Harbour Home Goods", "Harbour Home Goods"),
+    op("description", P, P, { op: "add_item", itemRef: P }),
+    op("description", P, P, { itemRef: P }),
+    op("quantity", "1,800", "1,800 ceramic dinner plates", { itemRef: P }),
+    op("originCity", "Birmingham", "from Birmingham"),
+    op("destinationCity", "Hamburg", "to Hamburg"),
+    op("unitPrice", "£6", "£6 each", { itemRef: P }),
+    op("unitsPerCarton", "12", "12 to a box", { itemRef: P }),
+    op("cartons", "90", "90 boxes"),
+    op("pallets", "2", "2 pallets"),
+    op("unitWeightKg", "0.8", "0.8 kilos", { itemRef: P, unit: "kilos" }),
+    op("grossWeightKg", "900", "900 kilos", { unit: "kilos" }),
+    op("hsCode", "69120", "HS code is 69120", { itemRef: P }),
+    op("countryOfOrigin", "China", "made in China", { itemRef: P }),
+    op("readyDate", "20th of October", "20th of October"),
+    op("priority", "Cheapest", "Cheapest"),
+    op("destinationType", "warehouse", "a warehouse"),
+    op("appointmentBooked", "no", "haven't booked a delivery slot"),
+  ];
+
+  it("lists every problem, asks the must-fix ones first, and doesn't ask 'correct?' about a past date", async () => {
+    const r = await turn(newChatSession("x"), SPEECH, ops);
+    expect(r.reply).toContain("**I spotted 5 things to fix:**");
+    for (const t of ["Customs (HS) code", "Units, boxes and quantity add up", "Total weight is realistic", "Warehouse delivery slot", "Ready date"]) {
+      expect(r.reply).toContain(`• ${t} — `);
+    }
+    expect(r.reply).toContain("1. ceramic dinner plates: HS code 69120 has only 5 digits.");
+    expect(r.reply).toContain("2. ceramic dinner plates: 12 per carton × 90 cartons = 1,080, but quantity says 1,800. Did you mean");
+    expect(r.reply).not.toContain("— correct?");
+    expect(r.reply).not.toContain("Product: ceramic dinner plates");
+    expect(r.session.booking.originCity.value).toBe("Birmingham");
+  });
+});

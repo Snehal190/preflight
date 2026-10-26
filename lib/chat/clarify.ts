@@ -5,13 +5,19 @@ import type { CheckResult, Patch } from "../rules/types";
 // asked by the field questions instead, so they're skipped here.
 
 export type IssueAction =
-  | { kind: "fix"; patches: Patch[]; summary: string }
+  | { kind: "fix"; patches: Patch[]; summary: string; clears: string[] }
   | { kind: "dg"; answerKey: string }
   | { kind: "remove"; itemId: string; name: string }
   | { kind: "appointment" };
 
 export interface IssueQuestion {
   resultId: string;
+  ruleId: string;
+  /** Plain rule name, for the "I spotted…" list. */
+  title: string;
+  found: string;
+  /** 0 = must fix, 1 = question for you, 2 = please check. Asked in that order. */
+  rank: number;
   /** Asked once per distinct finding: changes when the numbers change. */
   signature: string;
   text: string;
@@ -27,7 +33,8 @@ export function issueQuestions(results: CheckResult[], b: Booking, acknowledged:
     const sig = `${r.id}|${r.status}|${r.found}`;
     const item = r.scope.kind === "item" ? b.items.find((it) => r.scope.kind === "item" && it.itemId === r.scope.itemId) : undefined;
     const top = r.fix.tested?.[0];
-    const push = (text: string, action: IssueAction | null = null) => out.push({ resultId: r.id, signature: sig, text, action });
+    const rank = r.status === "fail" && r.severity === "red" ? 0 : r.status === "needs_answer" ? 1 : 2;
+    const push = (text: string, action: IssueAction | null = null) => out.push({ resultId: r.id, ruleId: r.ruleId, title: r.title, found: r.found, rank, signature: sig, text, action });
 
     switch (r.ruleId) {
       case "R-01":
@@ -38,7 +45,7 @@ export function issueQuestions(results: CheckResult[], b: Booking, acknowledged:
       case "R-02":
       case "R-03":
       case "R-04":
-        if (top) push(`${r.found} Did you mean: ${top.summary.charAt(0).toLowerCase()}${top.summary.slice(1)}?${top.typo ? ` (${top.typo.replace(/\.$/, "")}.)` : ""}`, { kind: "fix", patches: top.patches, summary: top.summary });
+        if (top) push(`${r.found} Did you mean: ${top.summary.charAt(0).toLowerCase()}${top.summary.slice(1)}?${top.typo ? ` (${top.typo.replace(/\.$/, "")}.)` : ""}`, { kind: "fix", patches: top.patches, summary: top.summary, clears: top.clears });
         else push(`${r.found} Which number is right?`);
         break;
       case "R-05":
@@ -62,5 +69,6 @@ export function issueQuestions(results: CheckResult[], b: Booking, acknowledged:
         break;
     }
   }
-  return out;
+  // Must-fix first, then questions, then things to check (stable within each group).
+  return out.map((q, i) => ({ q, i })).sort((a, b) => a.q.rank - b.q.rank || a.i - b.i).map((x) => x.q);
 }

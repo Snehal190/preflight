@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { newChatSession, addBlankItem, WELCOME, type ChatSession } from "@/lib/chat/session";
 import { tellUsChecklist, EXAMPLE_SENTENCE } from "@/lib/chat/checklist";
+import { fieldFlags } from "@/lib/stage/sequence";
 import type { BookingState, Evaluation } from "@/lib/booking/state";
 import { editBookingField, editItemField } from "@/lib/booking/edit";
 import { changeChips } from "@/lib/booking/changes";
@@ -46,7 +47,8 @@ function speak(text: string) {
 
 const TICK: Record<string, { icon: string; cls: string; sr: string }> = {
   done: { icon: "✓", cls: "bg-good text-white", sr: "done" },
-  unknown: { icon: "?", cls: "bg-accent text-ink", sr: "you said you don't know" },
+  unknown: { icon: "?", cls: "bg-warn-soft text-warn", sr: "you said you don't know" },
+  problem: { icon: "!", cls: "bg-bad text-white", sr: "needs fixing" },
   todo: { icon: "", cls: "border border-ink/25", sr: "still needed" },
 };
 
@@ -157,7 +159,7 @@ export default function View() {
     }
   }
 
-  const checklist = tellUsChecklist(session.booking, session.flags);
+  const checklist = tellUsChecklist(session.booking, session.flags, e ? fieldFlags(e.results) : {});
   const total = checklist.flatMap((g) => g.items).filter((i) => !i.optional);
   const doneCount = total.filter((i) => i.state !== "todo").length;
   const checkHref = `/batch/${chatBatchId(id)}/${encodeURIComponent(session.booking.key)}`;
@@ -302,10 +304,17 @@ export default function View() {
                           <span className={`mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-bold ${t.cls}`} aria-label={t.sr}>
                             {t.icon}
                           </span>
-                          <span className={it.state === "done" ? "text-ink/50 line-through decoration-ink/30" : ""}>
-                            <span className="font-semibold">{it.label}</span>
-                            {it.optional && <span className="text-ink/50"> (optional)</span>}
-                            <span className="block text-xs text-ink/60 no-underline">{it.example}</span>
+                          <span className="min-w-0">
+                            <span className={`font-semibold ${it.state === "problem" ? "text-bad" : ""}`}>{it.label}</span>
+                            {it.optional && <span className="text-ink-3"> (optional)</span>}
+                            {it.value ? (
+                              <span className={`mono block truncate text-xs ${it.state === "problem" ? "text-bad" : "text-ink"}`}>
+                                {it.value}
+                                {it.state === "problem" && " — needs fixing"}
+                              </span>
+                            ) : (
+                              <span className="block text-xs text-ink-3">e.g. {it.example}</span>
+                            )}
                           </span>
                         </li>
                       );

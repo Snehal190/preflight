@@ -43,3 +43,25 @@ describe("one-screen check stage", () => {
     }
   });
 });
+
+describe("why this carrier", () => {
+  it("explains the pick and every trade-off from the numbers", async () => {
+    const { carrierStory } = await import("@/lib/stage/carrierStory");
+    const { evaluateBooking } = await import("@/lib/booking/evaluate");
+    const { emptyState } = await import("@/lib/booking/state");
+    const e = await evaluateBooking(presetBooking("BK-012", TODAY), emptyState(), TODAY, async () => null);
+    const story = carrierStory(e.carrier, e.dates);
+    expect(story[0]).toBe("You asked for cheapest, so we rank the carriers that can take this load by the lowest total cost, then the shortest transit.");
+    expect(story[1]).toMatch(/^Carrier A \(Road economy\) costs £540, takes 5 working days and arrives on time 92% of the time — estimated delivery /);
+    expect(story).toContain("Carrier B would cost £120 more (£660), arrive 2 days sooner and be 3 points more reliable.");
+    expect(story).toContain("Carrier C would cost £480 more (£1,020), arrive 3 days sooner and be 6 points more reliable.");
+  });
+
+  it("says why a carrier was ruled out", async () => {
+    const { carrierStory } = await import("@/lib/stage/carrierStory");
+    const { evaluateBooking } = await import("@/lib/booking/evaluate");
+    const { emptyState } = await import("@/lib/booking/state");
+    const e = await evaluateBooking(presetBooking("BK-104", TODAY), emptyState(), TODAY, async () => null);
+    expect(carrierStory(e.carrier, e.dates).at(-1)).toBe("Carrier C can't take this load: 1,800 kg ÷ 4 pallets = 450 kg per pallet, over Carrier C's 400 kg limit.");
+  });
+});

@@ -25,18 +25,20 @@ exact wording can differ slightly, but the questions and results should match.
 | 900 kg total | 1,800 × 0.8 kg = 1,440 kg of plates alone | "…products alone weigh 1,440 kg — that can't be right…" |
 | No delivery slot | Warehouses turn away trucks without one | "…have you booked a slot?" |
 
-**Expect:** the checklist ticks most items; status **Blocked · 3 must-fix · 3 to check**;
-provisional carrier B (A can't take 720 kg per pallet of plates).
+**Expect:** the reply starts with **"I spotted 5 things to fix:"** listing all five in plain words,
+then asks up to 3 questions, most serious first: the HS code, **"Did you mean: change … quantity from
+1,800 to 1,080? (Looks like two digits were swapped.)"**, and when it will actually be ready. The
+checklist shows what you said (Birmingham, 1,800, 69120…) and marks wrong values red.
 
-## 2. Then reply to the questions
+## 2. Then reply
 
 | You say | What you should see |
 |---|---|
-| "No, sorry — it'll be ready next Monday. And the HS code is 691200." | Date becomes **Monday 02 Nov 2026 — correct?**; HS code fixed. Asks if the plates have a SKU. |
-| "Yes." | Date confirmed. Now asks: **"12 per carton × 90 cartons = 1,080, but quantity says 1,800. Did you mean … 1,080?"** |
-| "Yes, change it to 1,080." | **"Done — change … quantity from 1,800 to 1,080."** The weight problem clears by itself (1,080 × 0.8 = 864 kg ≤ 900 kg), the declared value recalculates to £6,480, and the carrier switches to **A, £360**. Asks about the delivery slot. |
-| "The SKU is PLATE-01." | Full read-back of every line, with the slot still listed under "Still to sort out". |
-| "Yes, I've booked the slot now." | Slot = Yes. Status **Ready for take-off**. Read-back again. |
+| "Sorry, the HS code is 691200. And yes, change it to 1,080." | Both fixed. The weight problem clears by itself (1,080 × 0.8 = 864 kg ≤ 900 kg). Asks about the delivery slot and the SKU. |
+| "It'll actually be ready next Monday." | **"Ready to ship Monday 02 Nov 2026 — correct?"** |
+| "Yes." | Date confirmed; full read-back, with the slot under "Still to sort out". |
+| "The SKU is PLATE-01." | Read-back again. |
+| "Yes, I've booked the slot now." | Status **Ready for take-off**. |
 | "Yes, that's all correct." | **"Everything's confirmed. Your checks: Ready for take-off."** |
 
 Then **Your booking → Open the full check →** Carrier A Road economy, £360, collection Mon 02 Nov,

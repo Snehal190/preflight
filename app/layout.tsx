@@ -41,7 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </nav>
           <Link href="/chat" className="btn hidden sm:inline-flex">New booking</Link>
         </header>
-        <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-5 py-6">{children}</main>
+        <main className="flex-1 w-full max-w-[1280px] mx-auto px-5 sm:px-8 py-6">{children}</main>
       </body>
     </html>
   );

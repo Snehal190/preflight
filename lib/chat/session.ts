@@ -38,6 +38,8 @@ export const ChatFlagsSchema = z.object({
     .default(null),
   /** Problems already asked about (by finding), so we don't nag every turn. */
   issuesAsked: z.array(z.string()).default([]),
+  /** Problems already listed in an "I spotted…" summary. */
+  issuesListed: z.array(z.string()).default([]),
 });
 export type ChatFlags = z.infer<typeof ChatFlagsSchema>;
 
@@ -103,6 +105,7 @@ export function newChatSession(id: string): ChatSession {
       generatedSkus: 0,
       pendingIssue: null,
       issuesAsked: [],
+      issuesListed: [],
     },
     lastQuestion: null,
     aiUnavailable: false,
