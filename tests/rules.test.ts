@@ -52,7 +52,7 @@ describe("BK-001 template example (spec §2.4)", () => {
     expect(JSON.stringify(runChecks(bk001(), ctx))).toBe(JSON.stringify(runChecks(bk001(), ctx)));
   });
 
-  it("fails R-10 once the ready date has passed — no special case", () => {
+  it("fails R-10 once the ready date has passed, no special case", () => {
     expect(statusOf(bk001(), "R-10", { today: "2026-11-06" })).toBe("fail");
   });
 });
@@ -108,7 +108,7 @@ describe("R-01 HS code", () => {
 
   it("shows an AI suggestion labelled as a suggestion, never applied", () => {
     const r = rule(runChecks(withHs(fv<string>(null, null)), { ...ctx, hsSuggestions: { "it-1": { code: "691200", reason: "ceramic tableware" } } }).results, "R-01");
-    expect(r.fix.suggestion?.label).toBe("Suggestion — please verify. You are legally responsible for the code.");
+    expect(r.fix.suggestion?.label).toBe("Suggestion: please verify. You are legally responsible for the code.");
     expect(r.fix.tested).toBeUndefined();
   });
 });
@@ -203,7 +203,7 @@ describe("R-05 weight per pallet", () => {
       expect(card.found).toContain("Red for Carrier C (your 'Fastest' choice)");
       expect(card.found).toContain("450 kg per pallet");
       expect(card.fix.text).toBe(
-        "To use Carrier C, repack onto 5 pallets (360 kg each): 5 × £340 = £1,700 vs 4 × £220 = £880 with Carrier B — £820 more, 1 day sooner.",
+        "To use Carrier C, repack onto 5 pallets (360 kg each): 5 × £340 = £1,700 vs 4 × £220 = £880 with Carrier B, £820 more, 1 day sooner.",
       );
       expect(report.status).not.toBe("blocked");
     });
@@ -305,7 +305,7 @@ describe("R-08 warehouse appointment", () => {
   it("business address → not applicable", () => {
     const r = rule(runChecks(bk001({ destinationType: fv("Business address" as const), appointmentBooked: fv<"Yes" | "No">(null, null) }), ctx).results, "R-08");
     expect(r.status).toBe("not_applicable");
-    expect(r.found).toBe("Not applicable — business address.");
+    expect(r.found).toBe("Not applicable: business address.");
   });
   it("warehouse + No → Amber; acknowledging it makes the booking ready", () => {
     const b = bk001({ appointmentBooked: fv("No" as const) });

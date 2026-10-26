@@ -23,16 +23,16 @@ export function CarrierSummary({ c, provisional }: { c: CarrierView; provisional
   const row = chosenRow(c);
   return (
     <div className="space-y-2">
-      {provisional && <p className="text-xs font-bold uppercase tracking-wide">Provisional — final once all issues are resolved</p>}
+      {provisional && <p className="text-xs font-bold uppercase tracking-wide">Provisional: final once all issues are resolved</p>}
       {row ? (
         <p className="text-lg">
           <strong>{row.name}</strong> {row.service} · {row.totalCost ? fmtGBP(row.totalCost) : row.pricePerPallet ? `${fmtGBP(row.pricePerPallet)} per pallet` : "no price"} · {row.transitDays} working days · {row.onTimePct}% on time
           {c.chosenIsManual && <span className="text-sm"> (your choice)</span>}
         </p>
       ) : c.noneEligible ? (
-        <p className="text-bad font-semibold">No carrier can take this load as packed — see R-05.</p>
+        <p className="text-bad font-semibold">No carrier can take this load as packed, see R-05.</p>
       ) : (
-        <p className="text-ink/70">No carrier yet — fill in the missing data (priority, destination, pallets, weight).</p>
+        <p className="text-ink/70">No carrier yet, fill in the missing data (priority, destination, pallets, weight).</p>
       )}
       {c.reason && <p className="text-sm">{c.reason}</p>}
     </div>

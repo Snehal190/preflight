@@ -54,7 +54,7 @@ export default function UploadPage() {
         <p className="eyebrow">New booking · spreadsheets</p>
         <h1 className="text-[34px]">Upload your sheets</h1>
         <p className="max-w-xl text-ink-2">
-          The Bookings sheet and the Items sheet — one .xlsx workbook with both, two files, or two CSVs. We check every booking against all 10 rules.
+          The Bookings sheet and the Items sheet, one .xlsx workbook with both, two files, or two CSVs. We check every booking against all 10 rules.
         </p>
       </div>
       <form onSubmit={submit} className="card space-y-4 p-5">

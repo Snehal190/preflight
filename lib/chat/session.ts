@@ -113,7 +113,7 @@ export function newChatSession(id: string): ChatSession {
 }
 
 export const WELCOME =
-  "Hi! Tell me about your shipment — where it's going, what's in it, and how it's packed. You can type or use the microphone. I'll only ask for what's missing.";
+  "Hi! Tell me about your shipment: where it's going, what's in it, and how it's packed. You can type or use the microphone. I'll only ask for what's missing.";
 
 /** Form fallback: add an empty product the seller fills in field by field. */
 export function addBlankItem(s: ChatSession): ChatSession {

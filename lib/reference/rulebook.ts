@@ -19,7 +19,7 @@ export const RULEBOOK: Record<RuleId, RuleDef> = {
   "R-01": {
     id: "R-01",
     plainName: "Customs (HS) code",
-    plainCheck: "Every product needs its full customs code — at least 6 digits.",
+    plainCheck: "Every product needs its full customs code, at least 6 digits.",
     shortName: "HS code at least 6 digits",
     rule: "Every item must have an HS code of at least 6 digits",
     severity: "red",

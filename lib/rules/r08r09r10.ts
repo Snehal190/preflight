@@ -14,7 +14,7 @@ export function r08(b: Booking, estimatedDelivery: string | null): CheckResult {
   if (type === "Business address") {
     return ruleResult("R-08", BOOKING_SCOPE, {
       status: "not_applicable",
-      found: "Not applicable — business address.",
+      found: "Not applicable: business address.",
       shouldBe: "Appointments are only needed for warehouse deliveries.",
       fix: { text: "" },
       why: { formula: R08_FORMULA, inputs, result: "Business address → not applicable" },

@@ -120,7 +120,7 @@ export function VerifyStage({
               return <b key={s.ruleId} className={`h-2 flex-1 rounded transition-colors duration-300 ${DOT[st]}`} title={s.name} />;
             })}
           </div>
-          <p className="text-[12px] text-ink-3">{done ? (ready ? (departing ? "Sealed, approved and on its way." : "Box sealed — choose your carrier below.") : "The box stays open until everything is fixed.") : "The box stays open while each rule drops in."}</p>
+          <p className="text-[12px] text-ink-3">{done ? (ready ? (departing ? "Sealed, approved and on its way." : "Box sealed, choose your carrier below.") : "The box stays open until everything is fixed.") : "The box stays open while each rule drops in."}</p>
         </div>
         {banner}
       </div>
@@ -129,7 +129,7 @@ export function VerifyStage({
         <div className="border-b border-line p-5">
           <p className="eyebrow">Deep analysis</p>
           <p className="mt-1 text-sm text-ink-2">
-            {done ? `${steps.filter((s) => isPacked(s.state)).length} of 10 rules passed or only need a look.` : "Each rule, in plain words — what we found, how to fix it, and why it matters."}
+            {done ? `${steps.filter((s) => isPacked(s.state)).length} of 10 rules passed or only need a look.` : "Each rule, in plain words, what we found, how to fix it, and why it matters."}
           </p>
         </div>
         <ol ref={listRef} className="relative flex-1 space-y-3 overflow-y-auto p-5" aria-live="polite">

@@ -43,8 +43,8 @@ describe("delivery dates (ASSUMPTION A2: working days)", () => {
     // Wed 23 Dec + 3: Thu 24 ✓, Fri 25 Christmas, weekend, Mon 28 England substitute day, Tue 29 ✓, Wed 30 ✓.
     const d = await dates({ ready: "2026-12-23", transit: 3 });
     expect(d.delivery).toBe("2026-12-30");
-    expect(d.notes[0]).toContain("Fri 25 Dec 2026 — Christmas Day (UK)");
-    expect(d.notes[0]).toContain("Mon 28 Dec 2026 — St. Stephen's Day (UK)");
+    expect(d.notes[0]).toContain("Fri 25 Dec 2026, Christmas Day (UK)");
+    expect(d.notes[0]).toContain("Mon 28 Dec 2026, St. Stephen's Day (UK)");
   });
 
   it("uses the destination city's German state", async () => {

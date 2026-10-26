@@ -16,7 +16,7 @@ export interface Parsed<T> {
 function unreadableOrNull<T>(c: Cell | undefined): Parsed<T> | null {
   if (isEmptyCell(c)) return { value: null, raw: null };
   if (c!.kind === "formula_no_value") {
-    return { value: null, raw: cellRaw(c), problem: "This cell is a formula with no saved value — please paste values.", unreadable: true };
+    return { value: null, raw: cellRaw(c), problem: "This cell is a formula with no saved value, please paste values.", unreadable: true };
   }
   if (c!.kind === "error") return { value: null, raw: cellRaw(c), problem: `the cell shows the error ${cellRaw(c)}.`, unreadable: true };
   return null;

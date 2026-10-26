@@ -274,5 +274,5 @@ function cantTellText(r: CheckResult, b: Booking): string {
   } else {
     names.push("the gross weight", "the pallet count");
   }
-  return `We can't tell which number is wrong — please check ${joinAnd(names)}.`;
+  return `We can't tell which number is wrong, please check ${joinAnd(names)}.`;
 }

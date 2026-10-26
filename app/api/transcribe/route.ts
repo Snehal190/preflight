@@ -11,12 +11,12 @@ export async function POST(req: Request) {
     const audio = form.get("audio");
     if (!(audio instanceof File)) return Response.json({ error: "No recording received." }, { status: 400 });
     if (audio.size === 0) return Response.json({ error: "The recording was empty." }, { status: 400 });
-    if (audio.size > MAX_AUDIO_BYTES) return Response.json({ error: "The recording is too long — keep it under 60 seconds." }, { status: 400 });
+    if (audio.size > MAX_AUDIO_BYTES) return Response.json({ error: "The recording is too long, keep it under 60 seconds." }, { status: 400 });
     if (!AUDIO_TYPES.test(audio.type)) return Response.json({ error: "That isn't an audio recording." }, { status: 400 });
-    if (!aiConfigured()) return Response.json({ error: "Voice is unavailable right now — please type instead." }, { status: 503 });
+    if (!aiConfigured()) return Response.json({ error: "Voice is unavailable right now, please type instead." }, { status: 503 });
     const mime = audio.type.split(";")[0];
     const res = await transcribeAudio(Buffer.from(await audio.arrayBuffer()).toString("base64"), mime);
-    if (!res.ok) return Response.json({ error: "I couldn't transcribe that — please try again or type instead." }, { status: 502 });
+    if (!res.ok) return Response.json({ error: "I couldn't transcribe that, please try again or type instead." }, { status: 502 });
     return Response.json({ transcript: res.data });
   } catch (e) {
     console.error("transcribe failed", e);

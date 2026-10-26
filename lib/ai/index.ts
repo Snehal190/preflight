@@ -92,8 +92,8 @@ export async function classifyItems(items: ItemForAi[], cache: AiCache = memoryC
       const e = chunk[Number(r.id)];
       if (!e) continue; // the model can't invent items
       const advice: ItemAiAdvice = {
-        dg: { category: r.category, confidence: r.confidence, reason: r.reason },
-        hs: e.item.hsCode && r.hsFits !== null ? { fits: r.hsFits, reason: r.hsReason ?? "" } : null,
+        dg: { category: r.category, confidence: r.confidence, reason: noDash(r.reason) },
+        hs: e.item.hsCode && r.hsFits !== null ? { fits: r.hsFits, reason: noDash(r.hsReason ?? "") } : null,
       };
       await cache.set(e.key, "dg", advice);
       for (const id of e.ids) byId[id] = advice;
@@ -103,6 +103,9 @@ export async function classifyItems(items: ItemForAi[], cache: AiCache = memoryC
 }
 
 // --- (4) HS suggestion for a blank code (advice only, never applied automatically).
+
+/** Sellers never see em dashes (product owner), including in the AI's own wording. */
+export const noDash = (t: string) => t.replace(/\s*—\s*/g, ", ");
 
 const HsSchema = z.object({ code: z.string(), reason: z.string(), confidence: z.enum(["high", "medium", "low"]) });
 
@@ -114,7 +117,7 @@ export async function suggestHsCode(description: string, cache: AiCache = memory
   if (!res.ok) return null;
   const code = res.data.code.replace(/\D/g, "");
   if (code.length < 6) return null;
-  const out = { code, reason: res.data.reason };
+  const out = { code, reason: noDash(res.data.reason) };
   await cache.set(key, "hs", out);
   return out;
 }

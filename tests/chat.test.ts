@@ -156,7 +156,7 @@ describe("asking only for what's missing (spec §19)", () => {
 
   it("dates are read back with the weekday and confirmed", async () => {
     const r = await turn(newChatSession("x"), "ready next Thursday", [op("readyDate", "next Thursday", "next Thursday")]);
-    expect(r.reply).toContain("Ready to ship Thursday 29 Oct 2026 (29-10-2026) — correct?");
+    expect(r.reply).toContain("Ready to ship Thursday 29 Oct 2026 (29-10-2026), correct?");
     const y = await turn(r.session, "yes", []);
     expect(y.session.flags.dateConfirmed).toBe(true);
   });
@@ -219,10 +219,19 @@ describe("derived vs stated (spec §12.5)", () => {
   it("HS code unknown → labelled AI suggestion, used only if confirmed", async () => {
     let s = (await turn(newChatSession("x"), "mugs", [op("description", "mugs", "mugs", { op: "add_item", itemRef: "mugs" })])).session;
     const r = await turn(s, "don't know the HS code", [op("hsCode", null, "don't know the HS code", { op: "unknown", itemRef: "mugs" })]);
-    expect(r.reply).toContain("**Suggestion — please verify; you are legally responsible for the code:** HS 691200");
+    expect(r.reply).toContain("**Suggestion: please verify; you are legally responsible for the code:** HS 691200");
     expect(r.session.booking.items[0].hsCode.value).toBeNull();
     s = (await turn(r.session, "yes", [])).session;
     expect(s.booking.items[0].hsCode).toMatchObject({ value: "691200", source: "confirmed" });
+  });
+
+  it("'No, leave it for now.' declines the HS suggestion instead of asking again", async () => {
+    const s = (await turn(newChatSession("x"), "mugs", [op("description", "mugs", "mugs", { op: "add_item", itemRef: "mugs" })])).session;
+    const r = await turn(s, "don't know the HS code", [op("hsCode", null, "don't know the HS code", { op: "unknown", itemRef: "mugs" })]);
+    const n = await turn(r.session, "No, leave it for now.", []);
+    expect(n.reply).toContain("OK, no HS code for now.");
+    expect(n.reply).not.toContain("Shall I use it?");
+    expect(n.session.booking.items[0].hsCode.value).toBeNull();
   });
 
   it("country of origin is never filled from the shipping country", async () => {
@@ -235,7 +244,7 @@ describe("read-back and corrections (spec §12.6–12.7)", () => {
   it("shows a full read-back when nothing is missing; 'yes' confirms derived values", async () => {
     let s = await fullBooking();
     const r = await turn(s, "Northfield Goods", [op("sellerName", "Northfield Goods", "Northfield Goods")]);
-    expect(r.reply).toContain("Here's the full booking — please check every line:");
+    expect(r.reply).toContain("Here's the full booking. Please check every line:");
     expect(r.reply).toContain("• Pallets: 3 · total cartons: 90 (worked out: sum of product cartons: 90)");
     const y = await turn(r.session, "yes that's right", []);
     expect(y.justConfirmed).toBe(true);
@@ -281,7 +290,7 @@ describe("read-back and corrections (spec §12.6–12.7)", () => {
   it("an ambiguous correction asks which field", async () => {
     const s = await fullBooking();
     const r = await turn(s, "make it 4", [], { ambiguities: [{ about: "4 could be pallets or cartons", quote: "make it 4" }] });
-    expect(r.reply).toContain('You said "make it 4" — 4 could be pallets or cartons. Which detail is that?');
+    expect(r.reply).toContain('You said "make it 4", 4 could be pallets or cartons. Which detail is that?');
     expect(r.session.booking.pallets.value).toBe(3);
   });
 
@@ -295,7 +304,7 @@ describe("read-back and corrections (spec §12.6–12.7)", () => {
   it("AI unavailable → points to the form, keeps everything", async () => {
     const s = await fullBooking();
     const r = await handleTurn(s, "hello", false, { ok: false, reason: "unavailable" }, deps);
-    expect(r.reply).toBe("The assistant is unavailable right now — you can fill in the booking form instead. Nothing you've told me is lost.");
+    expect(r.reply).toBe("The assistant is unavailable right now, you can fill in the booking form instead. Nothing you've told me is lost.");
     expect(r.session.aiUnavailable).toBe(true);
     expect(r.session.booking.pallets.value).toBe(3);
   });
@@ -310,7 +319,7 @@ describe("money with a GBP unit", () => {
 });
 
 describe("yes/no mixed with other details", () => {
-  it("'yes, use it — made in China' accepts the HS suggestion and records the origin", async () => {
+  it("'yes, use it, made in China' accepts the HS suggestion and records the origin", async () => {
     let s = (await turn(newChatSession("x"), "mugs", [op("description", "mugs", "mugs", { op: "add_item", itemRef: "mugs" })])).session;
     s = (await turn(s, "no idea about the HS code", [op("hsCode", null, "no idea about the HS code", { op: "unknown", itemRef: "mugs" })])).session;
     const r = await turn(s, "Yes, use it. They're made in China", [op("countryOfOrigin", "China", "made in China", { itemRef: "mugs" })]);
@@ -365,7 +374,7 @@ describe("several yes/no questions open", () => {
     let s = (await turn(newChatSession("x"), "candles", [op("description", "candles", "candles", { op: "add_item", itemRef: "candles" })])).session;
     s = (await turn(s, "don't know the HS code", [op("hsCode", null, "don't know the HS code", { op: "unknown", itemRef: "candles" })])).session;
     s.lastQuestion = `${s.lastQuestion} Does candles have a SKU?`;
-    // The AI also "extracts" the code from the yes — its quote has no number, so it's discarded.
+    // The AI also "extracts" the code from the yes, its quote has no number, so it's discarded.
     const r = await turn(s, "Yes, use that code.", [op("hsCode", "691200", "use that code", { itemRef: "candles" })]);
     expect(r.session.booking.items[0].hsCode).toMatchObject({ value: "691200", source: "confirmed" });
     expect(r.reply).not.toContain("couldn't match");
@@ -390,7 +399,7 @@ describe("problems asked back as plain questions", () => {
     expect(r.reply).not.toMatch(/R-0\d/);
     const y = await turn(r.session, "yes", []);
     expect(y.session.booking.items[0].quantity).toMatchObject({ value: 1080, source: "fixed" });
-    expect(y.reply).toContain("Done — change mugs quantity from 1,800 to 1,080.");
+    expect(y.reply).toContain("Done: change mugs quantity from 1,800 to 1,080.");
   });
 
   it("asks before removing a dangerous product", async () => {
@@ -465,7 +474,7 @@ describe("found by the mixed right/wrong speech", () => {
   it("'Yes, 1,080 is right' doesn't confirm a pending date question", async () => {
     let s = (await turn(newChatSession("x"), "ready 05-11-2026", [op("readyDate", "05-11-2026", "05-11-2026")])).session;
     s = (await turn(s, "plates", [op("description", "plates", "plates", { op: "add_item", itemRef: "plates" })])).session;
-    s.lastQuestion = "Ready to ship Thursday 05 Nov 2026 (05-11-2026) — correct?";
+    s.lastQuestion = "Ready to ship Thursday 05 Nov 2026 (05-11-2026), correct?";
     const r = await turn(s, "Yes, 1,080 is right.", [op("quantity", "1,080", "1,080", { itemRef: "plates" })]);
     expect(r.session.flags.dateConfirmed).toBe(false);
     expect(r.session.booking.items[0].quantity.value).toBe(1080);
@@ -521,11 +530,11 @@ describe("the Harbour Home Goods speech (reported by the product owner)", () => 
     const r = await turn(newChatSession("x"), SPEECH, ops);
     expect(r.reply).toContain("**I spotted 5 things to fix:**");
     for (const t of ["Customs (HS) code", "Units, boxes and quantity add up", "Total weight is realistic", "Warehouse delivery slot", "Ready date"]) {
-      expect(r.reply).toContain(`• ${t} — `);
+      expect(r.reply).toContain(`• ${t} · `);
     }
     expect(r.reply).toContain("1. ceramic dinner plates: HS code 69120 has only 5 digits.");
     expect(r.reply).toContain("2. ceramic dinner plates: 12 per carton × 90 cartons = 1,080, but quantity says 1,800. Did you mean");
-    expect(r.reply).not.toContain("— correct?");
+    expect(r.reply).not.toContain(", correct?");
     expect(r.reply).not.toContain("Product: ceramic dinner plates");
     expect(r.session.booking.originCity.value).toBe("Birmingham");
   });

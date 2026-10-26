@@ -180,7 +180,7 @@ describe("cell values", () => {
     expect(byId(o, "F1").cartons.value).toBe(90);
     const f2 = byId(o, "F2").cartons;
     expect(f2.value).toBeNull();
-    expect(f2.problem).toBe("This cell is a formula with no saved value — please paste values.");
+    expect(f2.problem).toBe("This cell is a formula with no saved value, please paste values.");
     const r01 = runChecks(byId(o, "F1"), { today: TODAY }).results.find((r) => r.ruleId === "R-01")!;
     expect(r01.status).toBe("missing_data");
   });

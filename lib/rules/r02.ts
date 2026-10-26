@@ -50,7 +50,7 @@ export function r02(b: Booking): CheckResult {
   const lineText = b.items.length
     ? b.items.map((it) => `${itemName(it)} ${fmtNum(it.quantity.value!)} × ${fmtGBP(it.unitPrice.value!)} = ${fmtGBP(dec(it.quantity.value!).times(it.unitPrice.value!))}`).join("; ")
     : "this booking has no items, so the item total is £0";
-  const pctText = total.isZero() ? (gap.isZero() ? "0%" : "n/a — the item total is £0") : gapPctText(gap, total, passed);
+  const pctText = total.isZero() ? (gap.isZero() ? "0%" : "n/a, the item total is £0") : gapPctText(gap, total, passed);
   inputs.push(computedInput("Item total", fmtGBP(total)), computedInput("Gap", `${fmtGBP(gap)} (${pctText})`));
 
   const range = `${fmtGBP(total.minus(allowed))} – ${fmtGBP(total.plus(allowed))}`;

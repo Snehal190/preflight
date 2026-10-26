@@ -152,7 +152,7 @@ function interpret(kind: FieldKind, op: ExtractOperation, today: string): { ok: 
     case "list": {
       const m = matchAllowed(kind.list, raw);
       if (!m.ok) return { ok: false, why: `"${raw}" isn't an option I can use.` };
-      const note = m.how === "synonym" ? `from "${raw}"` : m.how === "fuzzy" ? `I read "${raw}" as ${m.value} — tell me if that's wrong` : null;
+      const note = m.how === "synonym" ? `from "${raw}"` : m.how === "fuzzy" ? `I read "${raw}" as ${m.value}, tell me if that's wrong` : null;
       return { ok: true, value: m.value, shown: m.value, note };
     }
     case "amount": {
@@ -239,7 +239,7 @@ async function applyOp(s: ChatSession, opIn: ExtractOperation, messageId: string
     if (op.op === "increment" || op.op === "decrement") {
       const cur = rec(b)[field];
       if (!INT_FIELDS.has(field) || typeof cur.value !== "number") {
-        notes.problems.push(`I can't ${op.op === "increment" ? "add to" : "take from"} ${spec.label.toLowerCase()} — it isn't set yet. What should it be?`);
+        notes.problems.push(`I can't ${op.op === "increment" ? "add to" : "take from"} ${spec.label.toLowerCase()}, it isn't set yet. What should it be?`);
         return;
       }
       const by = parseAmount(op.value ?? "1", null, "int");
@@ -269,7 +269,7 @@ async function applyOp(s: ChatSession, opIn: ExtractOperation, messageId: string
     if (field === "readyDate") {
       notes.dateChanged = true;
       const past = String(v.value) < deps.today;
-      notes.recorded.push(`Ready to ship: ${v.shown}${past ? " — that date is in the past" : ""}`);
+      notes.recorded.push(`Ready to ship: ${v.shown}${past ? ", that date is in the past" : ""}`);
       return;
     }
     const numeric = spec.kind.kind === "amount" ? spoken(String(v.value), voice) : v.shown;
@@ -281,7 +281,7 @@ async function applyOp(s: ChatSession, opIn: ExtractOperation, messageId: string
   // Item operations.
   const pick = pickItem(b, op.itemRef, op.op);
   if ("ambiguous" in pick) {
-    notes.asks.push(`You said "${op.quote}" — which product is that for: ${pick.ambiguous.map((x) => x.description.value ?? itemName(x)).join(" or ")}?`);
+    notes.asks.push(`You said "${op.quote}", which product is that for: ${pick.ambiguous.map((x) => x.description.value ?? itemName(x)).join(" or ")}?`);
     return;
   }
   let it: Item;
@@ -320,19 +320,19 @@ async function applyOp(s: ChatSession, opIn: ExtractOperation, messageId: string
         s.flags.pendingHs = { itemId: it.itemId, code: sug.code, reason: sug.reason };
       } else {
         if (!s.flags.declined.includes(key)) s.flags.declined.push(key);
-        notes.recorded.push(`No HS code for ${name} — customs needs one, so this will block the booking until you add it.`);
+        notes.recorded.push(`No HS code for ${name}, customs needs one, so this will block the booking until you add it.`);
       }
       return;
     }
     if (!s.flags.declined.includes(key)) s.flags.declined.push(key);
-    if (field === "countryOfOrigin") notes.recorded.push(`No country of origin for ${name} — customs uses it to work out duty, so we'll flag it for you to check.`);
+    if (field === "countryOfOrigin") notes.recorded.push(`No country of origin for ${name}, customs uses it to work out duty, so we'll flag it for you to check.`);
     return;
   }
 
   if (op.op === "increment" || op.op === "decrement") {
     const cur = rec(it)[field];
     if (!INT_FIELDS.has(field) || typeof cur.value !== "number") {
-      notes.problems.push(`I can't change ${name} ${spec.label} — it isn't set yet. What should it be?`);
+      notes.problems.push(`I can't change ${name} ${spec.label}, it isn't set yet. What should it be?`);
       return;
     }
     const by = parseAmount(op.value ?? "1", null, "int");
@@ -427,7 +427,7 @@ export function derive(s: ChatSession): string[] {
       const unit = dec(cw).div(it.unitsPerCarton.value);
       note(
         setDerived(r, "unitWeightKg", unit.toFixed(), `${fmtKg(cw)} per carton ÷ ${fmtNum(it.unitsPerCarton.value)} units`, "A6"),
-        `**ASSUMPTION:** ${name} unit weight = ${fmtKg(cw)} ÷ ${fmtNum(it.unitsPerCarton.value)} = ${fmtKg(unit.toDecimalPlaces(3))} — ${ASSUMPTIONS.A6.label}. Please confirm.`,
+        `**ASSUMPTION:** ${name} unit weight = ${fmtKg(cw)} ÷ ${fmtNum(it.unitsPerCarton.value)} = ${fmtKg(unit.toDecimalPlaces(3))}, ${ASSUMPTIONS.A6.label}. Please confirm.`,
       );
     }
   }
@@ -469,7 +469,7 @@ export function derive(s: ChatSession): string[] {
 
   // Business address → no appointment needed (A7). Warehouse → it must be asked.
   if (b.destinationType.value === "Business address") {
-    setDerived(rec(b), "appointmentBooked", "No", "business address — appointments are for warehouses only", "A7");
+    setDerived(rec(b), "appointmentBooked", "No", "business address, appointments are for warehouses only", "A7");
   } else if (b.destinationType.value === "Warehouse" && b.appointmentBooked.assumptionId === "A7") {
     b.appointmentBooked = blank();
   }
@@ -491,8 +491,8 @@ export function missingQuestions(s: ChatSession): Question[] {
   const missing = (f: FieldValue<unknown>) => f.value === null;
 
   // 1 route
-  ask("originCity", "Which UK city is it collected from — London, Manchester, Birmingham or Leeds?", missing(b.originCity));
-  ask("destinationCity", "Where is it going — Berlin, Frankfurt, Hamburg, Paris, Lyon, Amsterdam or Rotterdam?", missing(b.destinationCity));
+  ask("originCity", "Which UK city is it collected from: London, Manchester, Birmingham or Leeds?", missing(b.originCity));
+  ask("destinationCity", "Where is it going: Berlin, Frankfurt, Hamburg, Paris, Lyon, Amsterdam or Rotterdam?", missing(b.destinationCity));
   // 2 items
   if (b.items.length === 0) ask("items", "What are you shipping? A short description of each product, with how many units and the price per unit.", true);
   for (const it of b.items) {
@@ -515,14 +515,14 @@ export function missingQuestions(s: ChatSession): Question[] {
     ask(`unitWeightKg:${it.itemId}`, `How much does one unit of ${n} weigh, in kg? (A carton weight works too.)`, missing(it.unitWeightKg) && !s.flags.cartonWeights[it.itemId]);
   }
   if (missing(b.grossWeightKg)) {
-    if (!s.flags.grossUnknown) ask("grossWeightKg", "What's the total gross weight in kg — products, cartons and pallets together?", true);
+    if (!s.flags.grossUnknown) ask("grossWeightKg", "What's the total gross weight in kg, products, cartons and pallets together?", true);
     else if (!s.flags.palletWeightKg && !s.flags.palletWeightUnknown) ask("palletWeightKg", "No problem. What does an empty pallet weigh?", true);
   }
   // 5 HS code, origin, SKU
   for (const it of b.items) {
     const n = it.description.value ?? itemName(it);
     if (s.flags.pendingHs?.itemId !== it.itemId) ask(`hsCode:${it.itemId}`, `What's the HS code for ${n}? If you don't know, say so and I can suggest one.`, missing(it.hsCode));
-    ask(`countryOfOrigin:${it.itemId}`, `Where was ${n} made? (The country of origin — not where it ships from.)`, missing(it.countryOfOrigin));
+    ask(`countryOfOrigin:${it.itemId}`, `Where was ${n} made? (The country of origin, not where it ships from.)`, missing(it.countryOfOrigin));
     ask(`sku:${it.itemId}`, `Does ${n} have a SKU?`, missing(it.sku) && !s.flags.skuAsked.includes(it.itemId));
   }
   // 6–9
@@ -537,7 +537,7 @@ export function missingQuestions(s: ChatSession): Question[] {
 // --- Read-back (spec §12.6).
 
 function show(f: FieldValue<unknown>, fmt: (v: unknown) => string = String): string {
-  if (f.value === null) return "— (missing)";
+  if (f.value === null) return "(missing)";
   const v = fmt(f.value);
   if (f.source === "assumed" && f.assumptionId) return `${v} **(ASSUMPTION: ${ASSUMPTIONS[f.assumptionId as AssumptionId].label})**`;
   if (f.source === "derived" && f.formula) return `${v} (worked out: ${f.formula})`;
@@ -548,7 +548,7 @@ export function readBack(s: ChatSession, voice: boolean): string {
   const b = s.booking;
   const n = (v: unknown) => spoken(String(v), voice);
   const lines = [
-    "Here's the full booking — please check every line:",
+    "Here's the full booking. Please check every line:",
     `• Seller: ${show(b.sellerName)}`,
     `• Route: ${show(b.originCity)}, United Kingdom → ${show(b.destinationCity)}, ${show(b.destinationCountry)}`,
     `• Destination type: ${show(b.destinationType)}${b.destinationType.value === "Warehouse" ? ` · appointment booked: ${show(b.appointmentBooked)}` : ""}`,
@@ -560,7 +560,7 @@ export function readBack(s: ChatSession, voice: boolean): string {
   ];
   for (const it of b.items) {
     lines.push(
-      `• ${show(it.sku)} — ${show(it.description)}: ${show(it.quantity, n)} units × ${show(it.unitPrice, (v) => fmtGBP(String(v)))}, ${show(it.unitsPerCarton, n)} per carton, ${show(it.cartons, n)} cartons, ${show(it.unitWeightKg, (v) => fmtKg(String(v)))} each, HS ${show(it.hsCode)}, made in ${show(it.countryOfOrigin)}`,
+      `• ${show(it.sku)} · ${show(it.description)}: ${show(it.quantity, n)} units × ${show(it.unitPrice, (v) => fmtGBP(String(v)))}, ${show(it.unitsPerCarton, n)} per carton, ${show(it.cartons, n)} cartons, ${show(it.unitWeightKg, (v) => fmtKg(String(v)))} each, HS ${show(it.hsCode)}, made in ${show(it.countryOfOrigin)}`,
     );
   }
   lines.push("Is everything correct? Reply **yes** to confirm, or tell me what to change.");
@@ -590,7 +590,7 @@ function pendingYesNo(s: ChatSession, asked: string): { kind: YesNoKind; item?: 
   if (s.flags.readbackShown && !s.flags.readbackConfirmed && asked === READBACK_QUESTION) out.push({ kind: "readback", at: 0 });
   if (s.flags.pendingHs && asked.includes("Shall I use it?")) out.push({ kind: "hs", at: asked.indexOf("Shall I use it?") });
   if (s.flags.pendingIssue && asked.includes(s.flags.pendingIssue.prompt)) out.push({ kind: "issue", at: asked.indexOf(s.flags.pendingIssue.prompt) });
-  if (s.booking.readyDate.value && !s.flags.dateConfirmed && asked.includes("Ready to ship") && asked.includes("— correct?")) out.push({ kind: "date", at: asked.indexOf("Ready to ship") });
+  if (s.booking.readyDate.value && !s.flags.dateConfirmed && asked.includes("Ready to ship") && asked.includes(", correct?")) out.push({ kind: "date", at: asked.indexOf("Ready to ship") });
   for (const it of s.booking.items) {
     const q = `Does ${it.description.value ?? itemName(it)} have a SKU?`;
     if (it.sku.value === null && asked.includes(q)) out.push({ kind: "sku", item: it, at: asked.indexOf(q) });
@@ -625,7 +625,7 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
 
   if (!extraction.ok) {
     s.aiUnavailable = true;
-    return say("The assistant is unavailable right now — you can fill in the booking form instead. Nothing you've told me is lost.");
+    return say("The assistant is unavailable right now, you can fill in the booking form instead. Nothing you've told me is lost.");
   }
   s.aiUnavailable = false;
   const ex = extraction.data;
@@ -653,14 +653,17 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
   // A bare yes/no answers the first open question; anything more must name the question it answers.
   const YN = "(yes|yeah|yep|yup|y|no|nope|nah|n|correct|right|ok(ay)?|sure|that'?s (right|correct)|confirm(ed)?|all good|looks good|please|thanks|thank you)";
   const pure = new RegExp(`^${YN}([\\s.!,—-]+${YN})*[\\s.!]*$`, "i").test(trimmed);
-  if (yesNo && (realOps ? named1 && pending[0].kind !== "readback" : short && pending.length >= 1 && (pure || pending.some((p) => pendingHints(p.kind).test(trimmed))))) {
-    if (!pure && !realOps) pending = pending.filter((p) => pendingHints(p.kind).test(trimmed));
+  // With just one yes/no question open, a short reply that starts with yes/no answers it
+  // ("No, leave it for now."), even without naming the question; a number means it is about something else.
+  const single = pending.length === 1 && !/\d/.test(trimmed);
+  if (yesNo && (realOps ? named1 && pending[0].kind !== "readback" : short && pending.length >= 1 && (pure || single || pending.some((p) => pendingHints(p.kind).test(trimmed))))) {
+    if (!pure && !realOps && !single) pending = pending.filter((p) => pendingHints(p.kind).test(trimmed));
     const q = pending[0];
     const yes = yesNo === "yes";
     if (q.kind === "readback") {
       if (yes) {
         confirmAll(s);
-        return say("Thanks — everything's confirmed.", true);
+        return say("Thanks, everything's confirmed.", true);
       }
       s.lastQuestion = "What would you like to change?";
       return say("What would you like to change?");
@@ -676,16 +679,16 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
       } else if (it && !s.flags.declined.includes(`hsCode:${it.itemId}`)) {
         s.flags.declined.push(`hsCode:${it.itemId}`);
       }
-      yesNoNotes.push(yes ? `OK — HS code ${p.code} recorded for ${it?.description.value ?? "that product"} (you confirmed it; you're responsible for it).` : "OK — no HS code for now. Customs needs one, so the booking stays blocked until you add it.");
+      yesNoNotes.push(yes ? `OK, HS code ${p.code} recorded for ${it?.description.value ?? "that product"} (you confirmed it; you're responsible for it).` : "OK, no HS code for now. Customs needs one, so the booking stays blocked until you add it.");
     } else if (q.kind === "date") {
       if (yes) {
         s.flags.dateConfirmed = true;
-        yesNoNotes.push(`Great — ready to ship ${fmtDateSpoken(s.booking.readyDate.value!)}.`);
+        yesNoNotes.push(`Great, ready to ship ${fmtDateSpoken(s.booking.readyDate.value!)}.`);
       } else {
         s.booking.readyDate = blank();
         if (!hasOps) {
           s.lastQuestion = "When will it be ready to ship?";
-          return say("OK — when will it be ready to ship? (DD-MM-YYYY is safest.)");
+          return say("OK, when will it be ready to ship? (DD-MM-YYYY is safest.)");
         }
       }
     } else if (q.kind === "issue") {
@@ -715,7 +718,7 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
   }
 
   if (ex.newShipment) {
-    return say("It sounds like you're describing a second shipment. Each chat holds one booking — press **Start a new booking** for the other one. I haven't changed this booking.");
+    return say("It sounds like you're describing a second shipment. Each chat holds one booking, press **Start a new booking** for the other one. I haven't changed this booking.");
   }
 
   // SKU question was asked: remember so it's asked only once.
@@ -736,7 +739,7 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
   for (const a of ex.ambiguities) {
     if (!a.quote.trim() || !lc.includes(a.quote.toLowerCase().replace(/\s+/g, " ").trim())) continue;
     const about = a.about.trim().replace(/[.!?]+$/, "");
-    notes.asks.push(`You said "${a.quote.trim().replace(/[.!?]+$/, "")}" — ${about.charAt(0).toLowerCase()}${about.slice(1)}. Which detail is that?`);
+    notes.asks.push(`You said "${a.quote.trim().replace(/[.!?]+$/, "")}", ${about.charAt(0).toLowerCase()}${about.slice(1)}. Which detail is that?`);
   }
   const derivedNotes = derive(s);
 
@@ -747,7 +750,7 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
     const p = pickItem(s.booking, o.itemRef, "set");
     return "item" in p ? rec(p.item)[o.field]?.value === null : true;
   };
-  if (discarded.some(stillMissing)) notes.problems.push("I couldn't match part of your message to exact words, so I've left those details out — I'll ask for them.");
+  if (discarded.some(stillMissing)) notes.problems.push("I couldn't match part of your message to exact words, so I've left those details out, I'll ask for them.");
 
   // A stated total stays as stated when products change; flag the difference (spec §12.7).
   if (notes.itemsChanged) {
@@ -782,21 +785,21 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
 function resolveIssue(s: ChatSession, a: IssueAction, yes: boolean, messageId: string): string {
   switch (a.kind) {
     case "fix":
-      if (!yes) return "OK — tell me which number is right and I'll update it.";
+      if (!yes) return "OK, tell me which number is right and I'll update it.";
       s.booking = applyPatches(s.booking, a.patches);
-      return `Done — ${a.summary.charAt(0).toLowerCase()}${a.summary.slice(1)}.`;
+      return `Done: ${a.summary.charAt(0).toLowerCase()}${a.summary.slice(1)}.`;
     case "dg":
       s.state = { ...s.state, answers: { ...s.state.answers, [a.answerKey]: yes ? "yes" : "no" } };
-      return yes ? "Thanks — that counts as dangerous goods, so it can't go on a normal road shipment." : "Thanks — noted that it doesn't.";
+      return yes ? "Thanks, that counts as dangerous goods, so it can't go on a normal road shipment." : "Thanks, noted that it doesn't.";
     case "remove": {
-      if (!yes) return `OK — ${a.name} stays, but the booking can't go by normal road until it's removed or shipped separately as dangerous goods.`;
+      if (!yes) return `OK, ${a.name} stays, but the booking can't go by normal road until it's removed or shipped separately as dangerous goods.`;
       s.booking.items = s.booking.items.filter((it) => it.itemId !== a.itemId);
       return `Removed ${a.name}.`;
     }
     case "appointment":
-      if (!yes) return "OK — you can still go ahead, but you'll be asked to accept that risk before take-off. Book a slot if you can.";
+      if (!yes) return "OK, you can still go ahead, but you'll be asked to accept that risk before take-off. Book a slot if you can.";
       s.booking.appointmentBooked = { value: "Yes", raw: "yes", source: "stated", location: { kind: "chat", messageId } };
-      return "Great — delivery slot booked.";
+      return "Great, delivery slot booked.";
   }
 }
 
@@ -832,14 +835,14 @@ function nextStep(s: ChatSession, head: string[], voice: boolean, today: string,
   if (s.flags.pendingHs && questions.length < 3 && !yesNoOpen) {
     const it = s.booking.items.find((x) => x.itemId === s.flags.pendingHs!.itemId);
     questions.push(
-      `**Suggestion — please verify; you are legally responsible for the code:** HS ${s.flags.pendingHs.code} for ${it?.description.value ?? "that product"} (${s.flags.pendingHs.reason}). Shall I use it?`,
+      `**Suggestion: please verify; you are legally responsible for the code:** HS ${s.flags.pendingHs.code} for ${it?.description.value ?? "that product"} (${s.flags.pendingHs.reason}). Shall I use it?`,
     );
     yesNoOpen = true;
   }
   // Read a new date back with its weekday — unless it's already in the past (that's asked above).
   const ready = s.booking.readyDate.value;
   if (dateJustSet && ready && ready >= today && !s.flags.dateConfirmed && !yesNoOpen && questions.length < 3) {
-    questions.unshift(`Ready to ship ${fmtDateSpoken(ready)} (${fmtDateField(ready)}) — correct?`);
+    questions.unshift(`Ready to ship ${fmtDateSpoken(ready)} (${fmtDateField(ready)}), correct?`);
     yesNoOpen = true;
   }
 
@@ -849,7 +852,7 @@ function nextStep(s: ChatSession, head: string[], voice: boolean, today: string,
   }
   const parts = [...head];
   if (newlySpotted.length) {
-    parts.push(`**I spotted ${newlySpotted.length === 1 ? "one thing" : `${newlySpotted.length} things`} to fix:**\n${newlySpotted.map((q) => `• ${q.title} — ${q.found}`).join("\n")}`);
+    parts.push(`**I spotted ${newlySpotted.length === 1 ? "one thing" : `${newlySpotted.length} things`} to fix:**\n${newlySpotted.map((q) => `• ${q.title} · ${q.found}`).join("\n")}`);
   }
   if (questions.length) {
     parts.push(questions.slice(0, 3).map((q, i) => (questions.length > 1 ? `${i + 1}. ${q}` : q)).join("\n"));

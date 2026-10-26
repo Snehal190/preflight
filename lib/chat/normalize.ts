@@ -198,9 +198,9 @@ export function parseAmount(rawValue: string, unit: string | null, kind: AmountK
       note = `${fmtNum(n)} g = ${fmtNum(out)} kg`;
       n = out;
     } else if (["ton", "tons"].includes(u)) {
-      return { ok: false, why: `"${text}" could be UK, US or metric tons — please give the weight in kg (or tonnes).` };
+      return { ok: false, why: `"${text}" could be UK, US or metric tons, please give the weight in kg (or tonnes).` };
     } else if (!kg.includes(u)) {
-      return { ok: false, why: `I don't know the unit "${u}" — please give the weight in kg.` };
+      return { ok: false, why: `I don't know the unit "${u}", please give the weight in kg.` };
     }
     if (n.lte(0)) return { ok: false, why: "The weight must be more than 0." };
     return { ok: true, value: n.toFixed(), note };

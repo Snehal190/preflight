@@ -14,7 +14,7 @@ describe("BK-001", () => {
     const row = a.rows.find((r) => r.carrier.id === "A")!;
     expect(row.totalCost!.toString()).toBe("540");
     expect(a.reason).toBe("Carrier A is the cheapest eligible option at £540 (3 × £180).");
-    expect(a.runnerUp!.text).toBe("Runner-up: Carrier B Road standard — £660 (3 × £220); £120 more, 2 days faster, 3 points more reliable.");
+    expect(a.runnerUp!.text).toBe("Runner-up: Carrier B Road standard, £660 (3 × £220); £120 more, 2 days faster, 3 points more reliable.");
   });
 });
 
@@ -39,7 +39,7 @@ describe("Balanced (TOPSIS) with the min-max cross-check", () => {
       expect(a.balanced!.topsisWinner).toBe("B");
       expect(a.balanced!.minMaxWinner).toBe("C");
       expect(a.balanced!.confidence).toBe("Medium");
-      expect(a.balanced!.confidenceText).toBe("Medium — scoring methods disagree; we chose the better value.");
+      expect(a.balanced!.confidenceText).toBe("Medium: scoring methods disagree; we chose the better value.");
     });
   }
 
@@ -75,7 +75,7 @@ describe("weight eligibility", () => {
     expect(c.eligible).toBe(false);
     expect(c.excludedReason).toBe("1,800 kg ÷ 4 pallets = 450 kg per pallet, over Carrier C's 400 kg limit.");
     expect(a.alternative!.pallets).toBe(5);
-    expect(a.alternative!.text).toBe("To use Carrier C, repack onto 5 pallets (360 kg each): 5 × £340 = £1,700 vs 4 × £220 = £880 with Carrier B — £820 more, 1 day sooner.");
+    expect(a.alternative!.text).toBe("To use Carrier C, repack onto 5 pallets (360 kg each): 5 × £340 = £1,700 vs 4 × £220 = £880 with Carrier B, £820 more, 1 day sooner.");
   });
 
   it("800 kg per pallet → no carrier, minimum pallets shown", () => {

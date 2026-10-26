@@ -193,7 +193,7 @@ export default function View() {
         <section className="card flex flex-col h-[calc(100dvh-12rem)] min-h-[32rem] overflow-hidden">
           {session.aiUnavailable && (
             <p role="alert" className="m-4 rounded-lg border border-warn/40 bg-warn/5 p-3 text-sm">
-              The assistant is unavailable right now — you can fill in the booking form instead (right-hand panel, “Your booking”). Nothing is lost.
+              The assistant is unavailable right now, you can fill in the booking form instead (right-hand panel, “Your booking”). Nothing is lost.
             </p>
           )}
 
@@ -238,7 +238,7 @@ export default function View() {
               className={`w-full rounded-xl border p-3 text-sm ${voice === "recording" ? "border-bad/60 bg-bad/5" : "border-ink/25"}`}
               rows={3}
               maxLength={2000}
-              placeholder="Speak, or type here — e.g. 1,080 ceramic mugs from Manchester to Frankfurt on 3 pallets…"
+              placeholder="Speak, or type here, e.g. 1,080 ceramic mugs from the UK to the Netherlands, Germany or France, on 3 pallets…"
               value={text}
               readOnly={voice === "recording"}
               onFocus={() => setCountdown(null)}
@@ -257,7 +257,7 @@ export default function View() {
             {session.flags.readbackConfirmed && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-paper">
                 <span className="font-semibold">
-                  <span className="text-accent">✓</span> Booking confirmed — now we verify it.
+                  <span className="text-accent">✓</span> Booking confirmed, now we verify it.
                 </span>
                 <Link href={checkHref} className="btn">Start the checks →</Link>
               </div>
@@ -322,7 +322,7 @@ export default function View() {
                             {it.value ? (
                               <span className={`mono block truncate text-xs ${it.state === "problem" ? "text-bad" : "text-ink"}`}>
                                 {it.value}
-                                {it.state === "problem" && " — needs fixing"}
+                                {it.state === "problem" && ", needs fixing"}
                               </span>
                             ) : (
                               <span className="block text-xs text-ink-3">e.g. {it.example}</span>
@@ -338,7 +338,7 @@ export default function View() {
                 <p className="font-bold uppercase tracking-wider text-[0.65rem] mb-1">You could say</p>
                 {EXAMPLE_SENTENCE}
               </div>
-              <p className="text-xs text-ink/60">Don&apos;t know something? Just say so — we&apos;ll help or flag it.</p>
+              <p className="text-xs text-ink/60">Don&apos;t know something? Just say so, we&apos;ll help or flag it.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -354,7 +354,7 @@ export default function View() {
                       {ruleRows.map(({ rid, worst }) => (
                         <li key={rid} className="flex items-center justify-between gap-2">
                           <span>{RULEBOOK[rid].plainName}</span>
-                          {worst ? <span className={`badge ${stateLabel(worst).cls}`}>{stateLabel(worst).text}</span> : <span className="text-ink/40">—</span>}
+                          {worst ? <span className={`badge ${stateLabel(worst).cls}`}>{stateLabel(worst).text}</span> : <span className="text-ink/40">-</span>}
                         </li>
                       ))}
                     </ul>

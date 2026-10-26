@@ -17,7 +17,7 @@ function show(f: FieldValue<unknown> | undefined, field = ""): string {
 }
 
 export function statusLabel(r: CheckResult | undefined): string {
-  if (!r) return "—";
+  if (!r) return "-";
   switch (r.status) {
     case "pass":
       return "Pass";
@@ -77,10 +77,10 @@ export function changeChips(prevB: Booking, prevE: Evaluation, nextB: Booking, n
   const cost = (e: Evaluation) => e.carrier.rows.find((r) => r.id === e.carrier.chosen)?.totalCost ?? null;
   const ca = cost(prevE);
   const cb = cost(nextE);
-  if (ca !== cb) chips.push(`Cost ${ca ? fmtGBP(ca) : "—"} → ${cb ? fmtGBP(cb) : "—"}`);
+  if (ca !== cb) chips.push(`Cost ${ca ? fmtGBP(ca) : "-"} → ${cb ? fmtGBP(cb) : "-"}`);
   const name = (e: Evaluation) => e.carrier.rows.find((r) => r.id === e.carrier.chosen)?.name ?? "none";
   chips.push(prevE.carrier.chosen === nextE.carrier.chosen ? "Carrier unchanged" : `Carrier ${name(prevE)} → ${name(nextE)}`);
-  const del = (e: Evaluation) => (e.dates ? fmtDateLong(e.dates.delivery) : "—");
+  const del = (e: Evaluation) => (e.dates ? fmtDateLong(e.dates.delivery) : "-");
   if (del(prevE) !== del(nextE)) chips.push(`Delivery ${del(prevE)} → ${del(nextE)}`);
   return chips;
 }

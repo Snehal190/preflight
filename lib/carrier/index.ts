@@ -285,7 +285,7 @@ function runnerUpText(winner: CarrierRow, second: CarrierRow, pallets: number | 
   }
   parts.push(daysPhrase(winner.carrier.transitDays - second.carrier.transitDays));
   parts.push(pointsPhrase(second.carrier.onTimePct - winner.carrier.onTimePct));
-  return `Runner-up: ${second.carrier.name} ${second.carrier.service} — ${costText(second, pallets)}; ${parts.join(", ")}.`;
+  return `Runner-up: ${second.carrier.name} ${second.carrier.service}, ${costText(second, pallets)}; ${parts.join(", ")}.`;
 }
 
 export function analyseCarriers(input: CarrierInput): CarrierAnalysis {
@@ -383,8 +383,8 @@ export function analyseCarriers(input: CarrierInput): CarrierAnalysis {
         confidence === null
           ? "Only one carrier can take this load, so it wins."
           : confidence === "High"
-            ? "High — both scoring methods pick the same carrier."
-            : "Medium — scoring methods disagree; we chose the better value.",
+            ? "High: both scoring methods pick the same carrier."
+            : "Medium: scoring methods disagree; we chose the better value.",
       marginal: marginalExplanation(eligibleRows),
     };
   }
@@ -406,7 +406,7 @@ export function analyseCarriers(input: CarrierInput): CarrierAnalysis {
       const sooner = winner.carrier.transitDays - pref.carrier.transitDays;
       const diffText = diff.isZero() ? "the same cost" : diff.isPositive() ? `${fmtGBP(diff)} more` : `${fmtGBP(diff.abs())} less`;
       const when = sooner > 0 ? `${plural(sooner, "day")} sooner` : sooner < 0 ? `${plural(-sooner, "day")} later` : "same transit time";
-      text += `: ${needed} × ${fmtGBP(pref.pricePerPallet!)} = ${fmtGBP(cost)} vs ${pallets} × ${fmtGBP(winner.pricePerPallet!)} = ${fmtGBP(vsCost)} with ${winner.carrier.name} — ${diffText}, ${when}.`;
+      text += `: ${needed} × ${fmtGBP(pref.pricePerPallet!)} = ${fmtGBP(cost)} vs ${pallets} × ${fmtGBP(winner.pricePerPallet!)} = ${fmtGBP(vsCost)} with ${winner.carrier.name}, ${diffText}, ${when}.`;
     } else {
       text += ".";
     }

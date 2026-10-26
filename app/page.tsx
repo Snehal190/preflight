@@ -19,7 +19,7 @@ export default function Home() {
             before it <span className="hl">leaves</span>.
           </h1>
           <p className="max-w-2xl text-lg text-ink-2">
-            Tell us about your pallet booking. PreFlight checks it against ten customs and carrier rules, shows exactly what to fix, and recommends the right carrier — before anything is booked.
+            Tell us about your pallet booking. PreFlight checks it against ten customs and carrier rules, shows exactly what to fix, and recommends the right carrier, before anything is booked.
           </p>
         </div>
 
@@ -40,7 +40,7 @@ export default function Home() {
             </span>
             <div className="space-y-2">
               <h2 className="text-[30px]">Upload your sheets</h2>
-              <p className="text-ink-2">Bookings sheet and Items sheet — one workbook, two files, or CSVs. We check every booking in the file.</p>
+              <p className="text-ink-2">Bookings sheet and Items sheet, one workbook, two files, or CSVs. We check every booking in the file.</p>
             </div>
             <span className="btn btn-dark mt-auto self-start px-5 py-3 text-[15px]">Upload →</span>
           </Link>

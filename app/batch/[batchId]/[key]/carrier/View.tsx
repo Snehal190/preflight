@@ -86,7 +86,7 @@ export default function View() {
                     {row.id === c.preferred && row.id !== c.recommended && ` · your '${c.priority}' pick`}
                   </span>
                   <span className="block text-sm">
-                    {row.totalCost ? fmtGBP(row.totalCost) : row.pricePerPallet ? `${fmtGBP(row.pricePerPallet)} per pallet` : "—"} · {row.transitDays} working days · {row.onTimePct}% on time · max {fmtKg(row.maxKgPerPallet)} per pallet
+                    {row.totalCost ? fmtGBP(row.totalCost) : row.pricePerPallet ? `${fmtGBP(row.pricePerPallet)} per pallet` : "-"} · {row.transitDays} working days · {row.onTimePct}% on time · max {fmtKg(row.maxKgPerPallet)} per pallet
                   </span>
                   {!eligible && row.excludedReason && <span className="block text-sm text-bad">Excluded: {row.excludedReason}</span>}
                 </span>

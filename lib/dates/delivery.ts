@@ -82,7 +82,7 @@ export function computeDeliveryDates(input: {
     day = addDays(day, 1);
     const why = reasonNotWorking(day, blockers, labels);
     if (why === null) counted++;
-    else if (why !== "weekend") skipped.push(`${fmtDateLong(day)} — ${why}`);
+    else if (why !== "weekend") skipped.push(`${fmtDateLong(day)}, ${why}`);
   }
   if (skipped.length) notes.push(`Public holidays skipped: ${skipped.join("; ")}.`);
   return { collection, delivery: day, notes, assumptions };
@@ -92,7 +92,7 @@ function skippedBetween(from: string, to: string, blockers: (Map<string, string>
   const extra: string[] = [];
   for (let d = addDays(from, 1); d < to; d = addDays(d, 1)) {
     const why = reasonNotWorking(d, blockers, labels);
-    if (why && why !== "weekend") extra.push(`${fmtDateLong(d)} — ${why}`);
+    if (why && why !== "weekend") extra.push(`${fmtDateLong(d)}, ${why}`);
   }
   return extra.length ? `; also ${extra.join("; ")}` : "";
 }

@@ -43,7 +43,7 @@ describe("why this carrier", () => {
     const e = await evaluateBooking(presetBooking("BK-012", TODAY), emptyState(), TODAY, async () => null);
     const story = carrierStory(e.carrier, e.dates);
     expect(story[0]).toBe("You asked for cheapest, so we rank the carriers that can take this load by the lowest total cost, then the shortest transit.");
-    expect(story[1]).toMatch(/^Carrier A \(Road economy\) costs £540, takes 5 working days and arrives on time 92% of the time — estimated delivery /);
+    expect(story[1]).toMatch(/^Carrier A \(Road economy\) costs £540, takes 5 working days and arrives on time 92% of the time, estimated delivery /);
     expect(story).toContain("Carrier B would cost £120 more (£660), arrive 2 days sooner and be 3 points more reliable.");
     expect(story).toContain("Carrier C would cost £480 more (£1,020), arrive 3 days sooner and be 6 points more reliable.");
   });

@@ -98,7 +98,7 @@ describe("other repairs", () => {
   it("says honestly when no tested fix exists", () => {
     const b = bk001({ cartons: fv(100) });
     const results = withFixes(runChecks(b, ctx), { byResult: {}, blockedReason: null }, b);
-    expect(results.find((r) => r.id === "R-04:booking")!.fix.noApplyReason).toBe("We can't tell which number is wrong — please check the booking's cartons and each item's cartons.");
+    expect(results.find((r) => r.id === "R-04:booking")!.fix.noApplyReason).toBe("We can't tell which number is wrong, please check the booking's cartons and each item's cartons.");
   });
 
   it("never offers Apply for HS codes, R-06, R-07, R-08, R-09 or R-10", () => {

@@ -71,7 +71,7 @@ export function tellUsChecklist(b: Booking, flags: ChatFlags, problems: Record<s
         it("Price per unit (£)", "“£5 each”", p("unitPrice"), values("unitPrice", fmtGBP)),
         it("Units per box", "“12 to a box”", p("unitsPerCarton"), values("unitsPerCarton"), "cartons"),
         it("Weight of one unit", "“0.5 kg each” (or a box weight)", p("unitWeightKg"), values("unitWeightKg", (v) => `${v} kg`)),
-        it("Customs (HS) code", "“691200” — or say you don't know", p("hsCode"), values("hsCode"), "hsCode"),
+        it("Customs (HS) code", "“691200”, or say you don't know", p("hsCode"), values("hsCode"), "hsCode"),
         it("Country where it's made", "“made in the UK”", p("countryOfOrigin"), values("countryOfOrigin"), "countryOfOrigin"),
         it("SKU", "“MUG-01”", p("sku"), values("sku"), undefined, true),
       ],
@@ -100,4 +100,4 @@ export function tellUsChecklist(b: Booking, flags: ChatFlags, problems: Record<s
 }
 
 export const EXAMPLE_SENTENCE =
-  "“I'm sending 1,080 ceramic mugs from Manchester to a warehouse in Frankfurt — £5 each, 12 to a box, half a kilo each, on 3 pallets, 620 kg in total. Ready next Thursday, cheapest please.”";
+  "“I'm sending 1,080 ceramic mugs from Leeds in the UK to a warehouse in Amsterdam in the Netherlands. £5 each, 12 to a box, half a kilo each, on 3 pallets, 620 kg in total. Ready next Thursday, cheapest please.”";

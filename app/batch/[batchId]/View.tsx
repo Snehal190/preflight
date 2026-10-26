@@ -54,7 +54,7 @@ export default function View() {
                     <Link className="underline font-semibold" href={`/batch/${batchId}/${encodeURIComponent(key)}`}>{label}</Link>
                     {row && !label.includes("(row") && <span className="text-ink/50"> · row {row}</span>}
                   </td>
-                  <td className="py-2 pr-3">{b.sellerName.value ?? "—"}</td>
+                  <td className="py-2 pr-3">{b.sellerName.value ?? "-"}</td>
                   <td className="py-2 pr-3 whitespace-nowrap">{b.originCity.value ?? "?"} → {b.destinationCity.value ?? "?"}{b.destinationCountry.value ? `, ${b.destinationCountry.value}` : ""}</td>
                   <td className="py-2 pr-3"><StatusBadge status={e.status} /><div className="text-xs mt-1">{e.headline}</div></td>
                   <td className="py-2 pr-3">{e.counts.red}</td>
@@ -63,7 +63,7 @@ export default function View() {
                   <td className="py-2 pr-3">{e.counts.missing}</td>
                   <td className="py-2 pr-3">{e.counts.needsAnswer}</td>
                   <td className="py-2 pr-3 whitespace-nowrap">
-                    {chosen ? `${chosen.name}${chosen.totalCost ? ` · ${fmtGBP(chosen.totalCost)}` : ""}` : e.carrier.noneEligible ? "No carrier fits" : "—"}
+                    {chosen ? `${chosen.name}${chosen.totalCost ? ` · ${fmtGBP(chosen.totalCost)}` : ""}` : e.carrier.noneEligible ? "No carrier fits" : "-"}
                   </td>
                 </tr>
               );

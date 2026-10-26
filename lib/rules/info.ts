@@ -14,7 +14,7 @@ export function infoResult(
   return {
     id: `INFO:${key}`,
     ruleId: "INFO",
-    title: "Info — advice, not a rule",
+    title: "Info: advice, not a rule",
     status: "fail",
     severity: "info",
     scope,

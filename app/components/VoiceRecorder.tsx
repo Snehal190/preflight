@@ -109,8 +109,8 @@ export function VoiceRecorder({
           if (!res.ok || !data.transcript) throw new Error(data.error ?? "I couldn't hear anything.");
           onFinal(data.transcript, null);
         } catch (e) {
-          if (live.current.trim()) onFinal(live.current.trim(), "We couldn't improve the transcript, so these are the live words — please check them.");
-          else setError(e instanceof Error ? e.message : "Transcription failed — please try again or type.");
+          if (live.current.trim()) onFinal(live.current.trim(), "We couldn't improve the transcript, so these are the live words, please check them.");
+          else setError(e instanceof Error ? e.message : "Transcription failed, please try again or type.");
         } finally {
           setState("idle");
         }
@@ -161,7 +161,7 @@ export function VoiceRecorder({
     }
   }
 
-  if (!supported) return <p className="text-sm text-ink/60">Voice isn&apos;t supported in this browser — please type below.</p>;
+  if (!supported) return <p className="text-sm text-ink/60">Voice isn&apos;t supported in this browser, please type below.</p>;
   return (
     <div className="flex flex-wrap items-center gap-3">
       {state === "recording" ? (
@@ -180,7 +180,7 @@ export function VoiceRecorder({
       <span className="text-xs text-ink/60">
         {state === "recording"
           ? hasLive
-            ? "Listening — your words appear below. Stops by itself when you pause."
+            ? "Listening, your words appear below. Stops by itself when you pause."
             : "Listening… tap Stop when you've finished."
           : "Up to 60 seconds. You can also type."}
       </span>

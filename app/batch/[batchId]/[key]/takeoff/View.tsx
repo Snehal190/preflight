@@ -29,7 +29,7 @@ export default function View() {
       <div className="space-y-3">
         <Link href={`${back}/carrier`} className="text-sm underline">← Carrier</Link>
         <p className="eyebrow">Ready for take-off</p>
-        <h1 className="text-[34px] sm:text-[40px]">You&apos;re all set — your flight is about to take off.</h1>
+        <h1 className="text-[34px] sm:text-[40px]">You&apos;re all set, your flight is about to take off.</h1>
         <p className="text-lg">{takeoffSummary(booking, e)}</p>
         <p className="text-sm text-ink/70">This is a booking request ready for take-off. Nothing has been sent to a carrier.</p>
         {e.dates?.assumptions.map((a) => <AssumptionLine key={a} id={a} />)}
@@ -43,7 +43,7 @@ export default function View() {
               const a = state.acknowledged.find((x) => x.id === r.id);
               return (
                 <li key={r.id}>
-                  <strong>{r.title}</strong> — {r.found} {a && <span className="text-ink/60">(acknowledged by {a.name}, {new Date(a.at).toLocaleString("en-GB")})</span>}
+                  <strong>{r.title}</strong>: {r.found} {a && <span className="text-ink/60">(acknowledged by {a.name}, {new Date(a.at).toLocaleString("en-GB")})</span>}
                 </li>
               );
             })}

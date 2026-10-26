@@ -60,7 +60,7 @@ export function r05(b: Booking, ctx: CheckContext, a: CarrierAnalysis): CheckRes
         status: "fail",
         found: `${calc}, above every carrier's limit (${line}).`,
         shouldBe: `At most ${fmtKg(Math.max(...a.rows.map((r) => r.carrier.maxKgPerPallet)))} per pallet (the highest carrier limit).`,
-        fix: { text: `Repack onto at least ${n} pallets (${fmtKg1(evalW.div(n))} each). Minimum per carrier — ${perCarrier}.` },
+        fix: { text: `Repack onto at least ${n} pallets (${fmtKg1(evalW.div(n))} each). Minimum per carrier, ${perCarrier}.` },
         why: { formula: R05_FORMULA, inputs, result: `No carrier can take ${fmtKg1(wpp)} per pallet → fail` },
         assumptions: assumptions ? [...assumptions] : undefined,
       }),
@@ -76,7 +76,7 @@ export function r05(b: Booking, ctx: CheckContext, a: CarrierAnalysis): CheckRes
       out.push(
         ruleResult("R-05", BOOKING_SCOPE, {
           status: "pass",
-          found: `${calc} — within every carrier's limit (${line}).`,
+          found: `${calc}, within every carrier's limit (${line}).`,
           shouldBe: "Within the chosen carrier's limit.",
           fix: { text: "" },
           why: { formula: R05_FORMULA, inputs, result: "Passes for every carrier → pass" },
@@ -173,7 +173,7 @@ export function r07(b: Booking): CheckResult {
     shouldBe: `At least ${fmtKg(net)} (${breakdown}), plus cartons and pallets.`,
     fix: {
       text: passed ? "" : `Your products alone weigh ${fmtKg(net)}, but gross weight says ${fmtKg(gross)}. Re-weigh the shipment; gross weight must include products, cartons and pallets.`,
-      noApplyReason: "There's no single correct gross weight — only a re-weigh can tell.",
+      noApplyReason: "There's no single correct gross weight, only a re-weigh can tell.",
     },
     why: { formula: R07_FORMULA, inputs, result: `${fmtKg(gross)} ${passed ? "≥" : "<"} ${fmtKg(net)} → ${passed ? "pass" : "fail"}` },
   });

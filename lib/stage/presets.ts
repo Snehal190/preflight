@@ -91,17 +91,17 @@ const MUGS: ItemSpec = { sku: "MUG-01", description: "Ceramic coffee mug, 350 ml
 export const PRESETS: { id: string; label: string; spec: PresetSpec }[] = [
   {
     id: "BK-012",
-    label: "BK-012 · Northfield Goods — all clear",
+    label: "BK-012 · Northfield Goods: all clear",
     spec: { id: "BK-012", seller: "Northfield Goods", origin: "Manchester", city: "Frankfurt", country: "Germany", type: "Warehouse", readyInDays: 4, priority: "Cheapest", pallets: 3, cartons: 90, declared: "5400", gross: "620", appointment: "Yes", items: [MUGS] },
   },
   {
     id: "BK-102",
-    label: "BK-102 · Typo Traders — quantity typo",
+    label: "BK-102 · Typo Traders: quantity typo",
     spec: { id: "BK-102", seller: "Typo Traders", origin: "Leeds", city: "Paris", country: "France", type: "Warehouse", readyInDays: 6, priority: "Cheapest", pallets: 3, cartons: 90, declared: "5400", gross: "1000", appointment: "Yes", items: [{ ...MUGS, qty: 1800 }] },
   },
   {
     id: "BK-105",
-    label: "BK-105 · Gadget Hub — dangerous goods",
+    label: "BK-105 · Gadget Hub: dangerous goods",
     spec: {
       id: "BK-105", seller: "Gadget Hub", origin: "London", city: "Rotterdam", country: "Netherlands", type: "Business address", readyInDays: 5, priority: "Cheapest", pallets: 1, cartons: 20, declared: "500", gross: "120", appointment: "No",
       items: [
@@ -112,12 +112,12 @@ export const PRESETS: { id: string; label: string; spec: PresetSpec }[] = [
   },
   {
     id: "BK-104",
-    label: "BK-104 · Heavy Haul — too heavy for express",
+    label: "BK-104 · Heavy Haul: too heavy for express",
     spec: { id: "BK-104", seller: "Heavy Haul", origin: "Manchester", city: "Berlin", country: "Germany", type: "Business address", readyInDays: 3, priority: "Fastest", pallets: 4, cartons: 100, declared: "12000", gross: "1800", appointment: "No", items: [{ sku: "TILE-01", description: "Ceramic floor tile", hs: "690721", qty: 2400, price: "5", upc: 24, cartons: 100, kg: "0.6", origin: "Turkey" }] },
   },
   {
     id: "BK-107",
-    label: "BK-107 · Late Larry — box count + past date",
+    label: "BK-107 · Late Larry: box count + past date",
     spec: { id: "BK-107", seller: "Late Larry", origin: "Birmingham", city: "Frankfurt", country: "Germany", type: "Warehouse", readyInDays: -10, priority: "Cheapest", pallets: 3, cartons: 100, declared: "5400", gross: "620", appointment: "No", items: [MUGS] },
   },
 ];

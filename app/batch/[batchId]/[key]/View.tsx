@@ -65,7 +65,7 @@ export default function View() {
             <p className="eyebrow">Checking your booking</p>
             <h1 className="text-[34px] sm:text-[44px]">{label}</h1>
             <p className="text-ink-2">
-              {booking.sellerName.value ?? "—"} · {booking.originCity.value ?? "?"} → {booking.destinationCity.value ?? "?"}
+              {booking.sellerName.value ?? "-"} · {booking.originCity.value ?? "?"} → {booking.destinationCity.value ?? "?"}
               {booking.destinationCountry.value ? `, ${booking.destinationCountry.value}` : ""}
             </p>
           </div>
@@ -92,7 +92,7 @@ export default function View() {
               <div className="absolute inset-x-4 bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-ink px-5 py-4 text-paper shadow-lg" style={{ animation: "pop .4s ease-out" }}>
                 <div>
                   <p className="text-lg font-extrabold">
-                    <span className="text-accent">✓</span> All checks passed — on its way to {booking.destinationCity.value}
+                    <span className="text-accent">✓</span> All checks passed, on its way to {booking.destinationCity.value}
                   </p>
                   <p className="text-sm opacity-80">Booking request ready for take-off. Nothing has been sent to a carrier yet.</p>
                 </div>
@@ -163,7 +163,7 @@ export default function View() {
       {verified && (
         <section className="grid gap-4 lg:grid-cols-2">
           <details className="card p-5">
-            <summary className="cursor-pointer font-semibold">Booking details — edit any value</summary>
+            <summary className="cursor-pointer font-semibold">Booking details, edit any value</summary>
             <div className="mt-4">
               <FieldsPanel booking={booking} busy={bk.busy} onEditBooking={bk.editBookingField} onEditItem={bk.editItemField} />
             </div>
@@ -174,7 +174,7 @@ export default function View() {
               <ul className="mt-3 space-y-1.5 text-sm">
                 {passed.map((r) => (
                   <li key={r.id}>
-                    <strong>{r.title}</strong> — {r.found}
+                    <strong>{r.title}</strong>: {r.found}
                   </li>
                 ))}
               </ul>

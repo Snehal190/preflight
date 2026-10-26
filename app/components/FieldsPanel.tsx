@@ -8,7 +8,7 @@ import { itemName, locationText } from "@/lib/rules/helpers";
 import { ASSUMPTIONS, type AssumptionId } from "@/lib/reference/assumptions";
 
 function display(field: string, f: FieldValue<unknown>): string {
-  if (f.value === null) return f.raw ? `"${f.raw}" — ${f.problem ?? "unreadable"}` : "(blank)";
+  if (f.value === null) return f.raw ? `"${f.raw}": ${f.problem ?? "unreadable"}` : "(blank)";
   if (field === "readyDate") return fmtDateField(String(f.value));
   if (typeof f.value === "number") return fmtNum(f.value);
   return String(f.value);

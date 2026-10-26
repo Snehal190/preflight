@@ -41,7 +41,7 @@ function dataResult(key: string, scope: CheckScope, found: string, fix: string, 
     shouldBe: "A readable value from the allowed list.",
     whyItMatters: "Without it we can't finish the checks or choose a carrier.",
     fix: { text: fix },
-    why: { formula: "Required field", inputs, result: "Not available — blocks progress." },
+    why: { formula: "Required field", inputs, result: "Not available: blocks progress." },
   };
 }
 
@@ -97,7 +97,7 @@ function noItemsResults(): CheckResult[] {
     shouldBe: "At least one item.",
     whyItMatters: RULEBOOK[ruleId].whyItMatters,
     fix: { text: "Add the booking's items." },
-    why: { formula: RULEBOOK[ruleId].rule, inputs: [], result: "Not run — no items." },
+    why: { formula: RULEBOOK[ruleId].rule, inputs: [], result: "Not run: no items." },
   }));
 }
 

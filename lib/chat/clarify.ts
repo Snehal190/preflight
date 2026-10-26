@@ -56,10 +56,10 @@ export function issueQuestions(results: CheckResult[], b: Booking, acknowledged:
         else if (item) push(`${r.found} That can't go on a normal road shipment. Shall I remove ${item.description.value ?? "it"} from this booking?`, { kind: "remove", itemId: item.itemId, name: item.description.value ?? "that product" });
         break;
       case "R-07":
-        push(`${r.found.replace(/\.$/, "")} — that can't be right, because the total has to include the products, boxes and pallets. What's the real total gross weight?`);
+        push(`${r.found.replace(/\.$/, "")}, that can't be right, because the total has to include the products, boxes and pallets. What's the real total gross weight?`);
         break;
       case "R-08":
-        push("It's going to a warehouse, but no delivery slot is booked. Warehouses turn away trucks without one — have you booked a slot?", { kind: "appointment" });
+        push("It's going to a warehouse, but no delivery slot is booked. Warehouses turn away trucks without one, have you booked a slot?", { kind: "appointment" });
         break;
       case "R-09":
         // Blank origin is asked as a field question.

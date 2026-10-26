@@ -22,7 +22,7 @@ export function carrierStory(c: CarrierView, dates: DatesView | null): string[] 
   const out: string[] = [];
   if (c.priority) out.push(`You asked for ${c.priority.toLowerCase()}, so we rank the carriers that can take this load by ${BASIS[c.priority] ?? "your priority"}.`);
   out.push(
-    `${pick.name} (${pick.service}) costs ${pick.totalCost ? fmtGBP(pick.totalCost) : `${fmtGBP(pick.pricePerPallet ?? "0")} per pallet`}, takes ${plural(pick.transitDays, "working day")} and arrives on time ${pick.onTimePct}% of the time${dates ? ` — estimated delivery ${fmtDateLong(dates.delivery)}` : ""}.`,
+    `${pick.name} (${pick.service}) costs ${pick.totalCost ? fmtGBP(pick.totalCost) : `${fmtGBP(pick.pricePerPallet ?? "0")} per pallet`}, takes ${plural(pick.transitDays, "working day")} and arrives on time ${pick.onTimePct}% of the time${dates ? `, estimated delivery ${fmtDateLong(dates.delivery)}` : ""}.`,
   );
   for (const r of c.rows) {
     if (r.id === pick.id || r.eligible === false) continue;

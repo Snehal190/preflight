@@ -45,10 +45,10 @@ export function CarrierPanel({
           {chosen && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
-                ["Total", chosen.totalCost ? fmtGBP(chosen.totalCost) : "—"],
+                ["Total", chosen.totalCost ? fmtGBP(chosen.totalCost) : "-"],
                 ["Transit", `${chosen.transitDays} working days`],
                 ["On time", `${chosen.onTimePct}%`],
-                ["Delivery", evaluation.dates ? fmtDateLong(evaluation.dates.delivery) : "—"],
+                ["Delivery", evaluation.dates ? fmtDateLong(evaluation.dates.delivery) : "-"],
               ].map(([k, v]) => (
                 <div key={k} className="rounded-xl bg-mist p-4">
                   <p className="eyebrow text-ink-3!">{k}</p>
@@ -90,7 +90,7 @@ export function CarrierPanel({
         </div>
 
         <div className="space-y-3 border-t border-line bg-mist p-6 sm:p-10 lg:border-l lg:border-t-0">
-          <p className="eyebrow text-ink-3!">Compare carriers · priority {c.priority ?? "—"}</p>
+          <p className="eyebrow text-ink-3!">Compare carriers · priority {c.priority ?? "-"}</p>
           {c.rows.map((r) => {
             const cost = Number(r.totalCost ?? r.pricePerPallet ?? 0);
             const sel = r.id === c.chosen;
@@ -106,7 +106,7 @@ export function CarrierPanel({
                     {r.name} <span className="font-normal text-ink-3">· {r.service}</span>
                     {r.id === c.recommended && <span className="badge ml-2 bg-accent text-black">Recommended</span>}
                   </span>
-                  <span className="mono font-bold">{r.totalCost ? fmtGBP(r.totalCost) : "—"}</span>
+                  <span className="mono font-bold">{r.totalCost ? fmtGBP(r.totalCost) : "-"}</span>
                 </div>
                 <div className="mt-3 h-1.5 overflow-hidden rounded bg-line">
                   <div className={`h-full rounded ${sel ? "bg-accent" : "bg-ink-3/50"}`} style={{ width: `${(cost / maxCost) * 100}%` }} />

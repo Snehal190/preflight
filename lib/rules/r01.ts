@@ -11,7 +11,7 @@ const FORMULA = "HS code must be a string of digits, at least 6 long";
 
 export function r01(it: Item, ctx: CheckContext): CheckResult[] {
   const name = itemName(it);
-  const desc = it.description.value ? ` — ${it.description.value}` : "";
+  const desc = it.description.value ? `, ${it.description.value}` : "";
   const scope = itemScope(it);
   const hs = it.hsCode;
   const inputs = withSku([input("HS code", hs)], it);
@@ -20,11 +20,11 @@ export function r01(it: Item, ctx: CheckContext): CheckResult[] {
   const suggestion = ctx.hsSuggestions?.[it.itemId];
   const fix: CheckResult["fix"] = {
     text: `Enter the full HS code for ${name}${desc}.`,
-    noApplyReason: "HS codes need your own check — we never fill them in for you.",
+    noApplyReason: "HS codes need your own check, we never fill them in for you.",
   };
   if (suggestion) {
     fix.suggestion = {
-      label: "Suggestion — please verify. You are legally responsible for the code.",
+      label: "Suggestion: please verify. You are legally responsible for the code.",
       value: suggestion.code,
       reason: suggestion.reason,
     };
@@ -40,7 +40,7 @@ export function r01(it: Item, ctx: CheckContext): CheckResult[] {
     out.push(
       ruleResult("R-01", scope, {
         status: "fail",
-        found: blank ? `${name}: No HS code.` : `${name}: HS code "${hs.raw}" isn't valid — ${hs.problem ?? "it contains characters other than digits"}.`,
+        found: blank ? `${name}: No HS code.` : `${name}: HS code "${hs.raw}" isn't valid, ${hs.problem ?? "it contains characters other than digits"}.`,
         shouldBe: "At least 6 digits, e.g. 691200.",
         fix,
         why: { formula: FORMULA, inputs, result: blank ? "Blank → fail" : "Not all digits → fail" },
@@ -51,7 +51,7 @@ export function r01(it: Item, ctx: CheckContext): CheckResult[] {
 
   const len = digits.length;
   const leadingZeroHint = (guess: string) =>
-    `Excel may have dropped a leading zero — did you mean ${guess}? If so, enter the code as text.`;
+    `Excel may have dropped a leading zero, did you mean ${guess}? If so, enter the code as text.`;
 
   if (len < 6) {
     if (it.hsWasNumeric && len === 5) fix.hint = leadingZeroHint(`0${digits}`);
@@ -112,7 +112,7 @@ export function r01(it: Item, ctx: CheckContext): CheckResult[] {
   if (advice && !advice.fits && it.description.value) {
     out.push(
       infoResult(`hs-advice:${it.itemId}`, scope, {
-        found: `AI advice: HS code ${digits} doesn't appear to match "${it.description.value}" — please check.`,
+        found: `AI advice: HS code ${digits} doesn't appear to match "${it.description.value}", please check.`,
         shouldBe: advice.reason,
         fix: { text: "Check the code against your tariff classification. This is AI advice, not a rule." },
         why: { formula: "AI advisory (Gemini)", inputs: [...inputs, input("Description", it.description)], result: "Possible mismatch" },

@@ -19,7 +19,7 @@ export function stateLabel(r: CheckResult): { text: string; cls: string } {
     case "not_applicable":
       return { text: "Not needed", cls: "bg-sage/30 text-ink" };
     case "fail":
-      if (r.severity === "red") return { text: r.nonBlocking ? "Note — doesn't block" : "Must fix", cls: "bg-bad text-white" };
+      if (r.severity === "red") return { text: r.nonBlocking ? "Note: doesn't block" : "Must fix", cls: "bg-bad text-white" };
       if (r.severity === "amber") return { text: "Please check", cls: "bg-warn text-white" };
       return { text: "Advice", cls: "bg-note text-paper" };
   }
@@ -85,7 +85,7 @@ export function IssueCard({ r, busy, acknowledgedBy, onApply, onAnswer, onAcknow
               {r.fix.hint && <p className="font-semibold">{r.fix.hint}</p>}
               {r.fix.suggestion && (
                 <p className="rounded border border-ink/20 p-2">
-                  <strong>{r.fix.suggestion.label}</strong> HS code <code>{r.fix.suggestion.value}</code> — {r.fix.suggestion.reason}
+                  <strong>{r.fix.suggestion.label}</strong> HS code <code>{r.fix.suggestion.value}</code>: {r.fix.suggestion.reason}
                 </p>
               )}
               {onSuggestHs && !r.fix.suggestion && (
@@ -164,8 +164,8 @@ export function IssueCard({ r, busy, acknowledgedBy, onApply, onAnswer, onAcknow
                   <tr key={n} className="border-t border-ink/10">
                     <td className="pr-2">{i.label}</td>
                     <td className="pr-2">{i.value}</td>
-                    <td className="pr-2">{i.source ?? "—"}</td>
-                    <td>{locationText(i.location, i.sku, i.label) || "—"}</td>
+                    <td className="pr-2">{i.source ?? "-"}</td>
+                    <td>{locationText(i.location, i.sku, i.label) || "-"}</td>
                   </tr>
                 ))}
               </tbody>

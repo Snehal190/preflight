@@ -72,13 +72,13 @@ export function missingResult(ruleId: RuleId, scope: CheckScope, reasons: string
     found: reasons.join(" "),
     shouldBe: `We need ${reasons.length === 1 ? "this value" : "these values"} to check "${RULEBOOK[ruleId].plainName}".`,
     fix: { text: fixText ?? "Fill in the missing value(s) above, then the check will run." },
-    why: { formula, inputs, result: "Not run — missing data." },
+    why: { formula, inputs, result: "Not run: missing data." },
   });
 }
 
 export function locationText(loc: Location | null | undefined, sku?: string | null, label?: string): string {
   if (!loc) return "";
   // Uploads: sheet + row + column (+ SKU). Chat: the field name (spec §3.4).
-  const base = loc.kind === "cell" ? `${loc.sheet} sheet, row ${loc.row}, column "${loc.column}"` : `chat — ${label ?? "field"}`;
+  const base = loc.kind === "cell" ? `${loc.sheet} sheet, row ${loc.row}, column "${loc.column}"` : `chat: ${label ?? "field"}`;
   return sku ? `${base} (SKU ${sku})` : base;
 }

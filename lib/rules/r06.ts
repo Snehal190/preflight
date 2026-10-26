@@ -40,7 +40,7 @@ export function r06(it: Item, ctx: CheckContext): CheckResult {
   const red = hits.filter((h) => effectiveTier(h) === "red").sort((a, b) => b.term.length - a.term.length)[0];
   const ai = ctx.dgAi?.available ? ctx.dgAi.byItemId[it.itemId] : undefined;
   const negated = hits.filter((h) => h.negatedBy).map((h) => `"${h.term}" cancelled by "${h.negatedBy}"`);
-  const aiInputs = ai ? [{ label: "AI review", value: `${ai.category} (${ai.confidence}) — ${ai.reason}` }] : [];
+  const aiInputs = ai ? [{ label: "AI review", value: `${ai.category} (${ai.confidence}), ${ai.reason}` }] : [];
   const allInputs = [...inputs, ...aiInputs];
   const negNote = negated.length ? ` (${negated.join("; ")})` : "";
 
@@ -56,7 +56,7 @@ export function r06(it: Item, ctx: CheckContext): CheckResult {
   if (ai && ai.category !== "none" && ai.category !== "unsure" && ai.confidence === "high") {
     return ruleResult("R-06", scope, {
       status: "fail",
-      found: `${name}: AI review says "${desc}" is likely ${DG_CATEGORY_LABEL[ai.category]} — ${ai.reason}`,
+      found: `${name}: AI review says "${desc}" is likely ${DG_CATEGORY_LABEL[ai.category]}, ${ai.reason}`,
       shouldBe: "No lithium batteries, aerosols or flammable liquids.",
       fix,
       why: { formula: FORMULA, inputs: allInputs, result: `AI flag ${ai.category}, high confidence → Red` },
@@ -72,9 +72,9 @@ export function r06(it: Item, ctx: CheckContext): CheckResult {
   }
   const hint = hsHint(it.hsCode.value);
   if (hint) asks.push({ category: hint.category, why: `HS code starts ${hint.prefix} (${hint.label})` });
-  if (ai && ai.category === "unsure") asks.push({ category: null, why: `AI review unsure — ${ai.reason}` });
+  if (ai && ai.category === "unsure") asks.push({ category: null, why: `AI review unsure: ${ai.reason}` });
   if (ai && ai.category !== "none" && ai.category !== "unsure" && ai.confidence !== "high") {
-    asks.push({ category: ai.category, why: `AI review: possibly ${DG_CATEGORY_LABEL[ai.category]} (${ai.confidence} confidence) — ${ai.reason}` });
+    asks.push({ category: ai.category, why: `AI review: possibly ${DG_CATEGORY_LABEL[ai.category]} (${ai.confidence} confidence), ${ai.reason}` });
   }
 
   if (asks.length) {
