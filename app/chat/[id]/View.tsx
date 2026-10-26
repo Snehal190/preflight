@@ -134,6 +134,10 @@ export default function View() {
       setFromVoice(false);
       setVoiceNote(null);
       if (readAloud) speak(r.session.messages[r.session.messages.length - 1].text);
+      // Seller confirmed everything: hand over to the verification screen.
+      if (r.session.flags.readbackConfirmed && !current.session.flags.readbackConfirmed) {
+        setTimeout(() => router.push(`/batch/${chatBatchId(id)}/${encodeURIComponent(r.session.booking.key)}`), 1800);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -250,6 +254,14 @@ export default function View() {
               }}
             />
             {voiceNote && <p className="text-xs font-semibold text-warn">{voiceNote}</p>}
+            {session.flags.readbackConfirmed && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-paper">
+                <span className="font-semibold">
+                  <span className="text-accent">✓</span> Booking confirmed — now we verify it.
+                </span>
+                <Link href={checkHref} className="btn">Start the checks →</Link>
+              </div>
+            )}
             {countdown !== null ? (
               <div className="flex flex-wrap items-center gap-3 rounded-xl bg-accent-soft border border-accent/30 px-3 py-2 text-sm" role="status">
                 <span className="font-semibold">Sending in {countdown}… check the words above.</span>

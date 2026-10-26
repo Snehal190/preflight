@@ -40,7 +40,8 @@ export default function UploadPage() {
         })),
       };
       if (!saveBatch(batch)) throw new Error("Couldn't save the results in this browser (storage full or blocked).");
-      router.push(`/batch/${batch.id}`);
+      // One booking: straight to its verification. Several: the results table first.
+      router.push(batch.bookings.length === 1 ? `/batch/${batch.id}/${encodeURIComponent(batch.bookings[0].key)}` : `/batch/${batch.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
       setBusy(false);

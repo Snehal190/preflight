@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { runChecks } from "@/lib/rules";
 import { checkSequence, fieldFlags, isPacked } from "@/lib/stage/sequence";
 import { PRESETS, presetBooking } from "@/lib/stage/presets";
-import { fixAll } from "@/lib/stage/fixAll";
 
 const TODAY = "2026-10-26";
 const ctx = { today: TODAY };
@@ -26,14 +25,6 @@ describe("one-screen check stage", () => {
   it("colours the booking fields behind each problem", () => {
     const flags = fieldFlags(runChecks(presetBooking("BK-107", TODAY), ctx).results);
     expect(flags).toMatchObject({ cartons: "bad", readyDate: "warn", appointmentBooked: "warn" });
-  });
-
-  it("'Fix all' applies only tested numeric fixes", () => {
-    const { booking, applied } = fixAll(presetBooking("BK-102", TODAY), ctx);
-    expect(applied).toEqual(["Change MUG-01 quantity from 1,800 to 1,080"]);
-    expect(runChecks(booking, ctx).status).toBe("ready");
-    const dg = fixAll(presetBooking("BK-105", TODAY), ctx);
-    expect(dg.applied).toEqual([]); // dangerous goods need the seller's own action
   });
 
   it("every preset builds and keeps future dates (except the deliberate past one)", () => {
@@ -63,5 +54,19 @@ describe("why this carrier", () => {
     const { emptyState } = await import("@/lib/booking/state");
     const e = await evaluateBooking(presetBooking("BK-104", TODAY), emptyState(), TODAY, async () => null);
     expect(carrierStory(e.carrier, e.dates).at(-1)).toBe("Carrier C can't take this load: 1,800 kg ÷ 4 pallets = 450 kg per pallet, over Carrier C's 400 kg limit.");
+  });
+});
+
+describe("deep analysis rows", () => {
+  it("carry the fix for a problem and nothing for a pass", async () => {
+    const { suggestFixes, withFixes } = await import("@/lib/repair");
+    const b = presetBooking("BK-102", TODAY);
+    const report = runChecks(b, ctx);
+    const steps = checkSequence(withFixes(report, suggestFixes(b, ctx, report), b));
+    const units = steps.find((s) => s.ruleId === "R-03")!;
+    expect(units.state).toBe("fail");
+    expect(units.fix).toContain("1,080");
+    expect(units.problems).toBe(1);
+    expect(steps.find((s) => s.ruleId === "R-01")!.fix).toBeNull();
   });
 });

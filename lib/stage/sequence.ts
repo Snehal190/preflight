@@ -13,6 +13,10 @@ export interface StageStep {
   /** What we found, from the most serious result for this rule. */
   detail: string;
   why: string;
+  /** What to do about it (tested fix, fix text or the question to answer); null when fine. */
+  fix: string | null;
+  /** How many lines (booking or products) have a problem under this rule. */
+  problems: number;
 }
 
 const RANK: Record<StepState, number> = { missing: 0, fail: 1, question: 2, amber: 3, pass: 4, na: 5 };
@@ -37,12 +41,16 @@ export function checkSequence(results: CheckResult[]): StageStep[] {
     const rs = results.filter((r) => r.ruleId === ruleId && !r.nonBlocking);
     const worst = [...rs].sort((a, b) => RANK[stepState(a)] - RANK[stepState(b)])[0];
     const state: StepState = worst ? stepState(worst) : "na";
+    const bad = rs.filter((r) => r.status !== "pass" && r.status !== "not_applicable");
+    const fix = !worst || state === "pass" || state === "na" ? null : worst.status === "needs_answer" && worst.question ? worst.question.prompt : (worst.fix.tested?.[0]?.summary ?? (worst.fix.text || null));
     return {
       ruleId,
       name: RULEBOOK[ruleId].plainName,
       state,
       detail: worst?.found ?? "",
       why: RULEBOOK[ruleId].whyItMatters,
+      fix,
+      problems: bad.length,
     };
   });
 }

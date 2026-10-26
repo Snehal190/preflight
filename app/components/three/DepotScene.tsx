@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type * as THREE_NS from "three";
 import { canvasTexture, noise, prefersReducedMotion, STATE_HEX, webglAvailable } from "./textures";
-import { flapsClosed, isSealed } from "@/lib/stage/flaps";
+import { isSealed } from "@/lib/stage/flaps";
 
 export interface DepotTag {
   name: string;
@@ -13,16 +13,17 @@ export interface DepotTag {
 const PACKED = new Set(["pass", "amber", "na"]);
 
 /**
- * One scene: a lorry parked at the depot with an open carton on its flatbed. Check tags fly in
- * and drop into the box; a flap folds down each time enough checks pass, and the box is taped
- * shut when all ten pass. The lorry doesn't move until `departing` — then it drives onto the
- * ferry at the quay and sails away.
+ * One scene: a lorry parked at the depot with an open carton on its flatbed. Each check appears
+ * just above the open box and drops straight in (or, if it fails, onto the ground beside the
+ * lorry). The box stays open while checking; only when all ten have passed do the flaps fold
+ * down one by one and the box is taped shut. The lorry doesn't move until `departing` — then it
+ * drives onto the ferry at the quay and sails away.
  */
-export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; departing: boolean; label: string }) {
+export function DepotScene({ tags, done, departing, label }: { tags: DepotTag[]; done: boolean; departing: boolean; label: string }) {
   const host = useRef<HTMLDivElement>(null);
-  const live = useRef({ tags, departing });
+  const live = useRef({ tags, done, departing });
   const [fallback, setFallback] = useState(false);
-  live.current = { tags, departing };
+  live.current = { tags, done, departing };
 
   useEffect(() => {
     if (!host.current) return;
@@ -46,7 +47,7 @@ export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; depar
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 0.75;
+        renderer.toneMappingExposure = 0.68;
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         el.appendChild(renderer.domElement);
@@ -145,12 +146,12 @@ export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; depar
 
         // ---------- the lorry (cab faces −x, which is screen-right) ----------
         const lorry = new THREE.Group();
-        const paint = new THREE.MeshPhysicalMaterial({ color: 0xf2f4f7, roughness: 0.32, metalness: 0.15, clearcoat: 0.8, clearcoatRoughness: 0.2 });
+        const paint = new THREE.MeshStandardMaterial({ color: 0xe4e4e0, roughness: 0.55, metalness: 0.1 });
         const steel = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.45, metalness: 0.35 });
-        const brand = new THREE.MeshStandardMaterial({ color: 0xffd21f, roughness: 0.45, metalness: 0.1 });
+        const brand = new THREE.MeshStandardMaterial({ color: 0xe8be1a, roughness: 0.6, metalness: 0.05 });
         const black = new THREE.MeshStandardMaterial({ color: 0x16191d, roughness: 0.8 });
-        const chrome = new THREE.MeshStandardMaterial({ color: 0xd8dde3, roughness: 0.15, metalness: 1 });
-        const glass = new THREE.MeshPhysicalMaterial({ color: 0x1b2633, roughness: 0.05, metalness: 0.2, transmission: 0, clearcoat: 1 });
+        const chrome = new THREE.MeshStandardMaterial({ color: 0xb8bcc0, roughness: 0.35, metalness: 0.85 });
+        const glass = new THREE.MeshStandardMaterial({ color: 0x20262c, roughness: 0.15, metalness: 0.3 });
         const tyre = new THREE.MeshStandardMaterial({ color: 0x111316, roughness: 0.9 });
         const rimMat = new THREE.MeshStandardMaterial({ color: 0xb9c0c8, roughness: 0.3, metalness: 0.9 });
         const add = (geo: THREE_NS.BufferGeometry, mat: THREE_NS.Material | THREE_NS.Material[], x: number, y: number, z: number, parent: THREE_NS.Object3D = lorry) => {
@@ -206,11 +207,6 @@ export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; depar
           for (const dz of [-d / 2 + 0.1, 0, d / 2 - 0.1]) add(new THREE.BoxGeometry(w, 0.12, 0.16), wood, x, 1.54, dz);
           for (let i = 0; i < 6; i++) add(new THREE.BoxGeometry(0.16, 0.04, d), wood, x - w / 2 + 0.1 + (i * (w - 0.2)) / 5, 1.62, 0);
         };
-        const wrap = new THREE.MeshPhysicalMaterial({ color: 0xe9eef4, roughness: 0.25, transmission: 0.25, thickness: 0.5, clearcoat: 1 });
-        for (const x of [-2.7, 5.8]) {
-          pallet(x, 1.9, 2.0);
-          add(new RoundedBoxGeometry(1.85, 1.7, 1.95, 3, 0.08), wrap, x, 2.5, 0);
-        }
         pallet(1.55, 2.3, 2.0);
 
         const card = canvasTexture(THREE, 256, 256, (g, w, h) => {
@@ -221,6 +217,19 @@ export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; depar
           for (let y = 6; y < h; y += 12) g.strokeRect(0, y, w, 0.6);
         });
         const cardMat = new THREE.MeshStandardMaterial({ map: card, roughness: 0.92 });
+        // Two pallets of stacked cartons under a light stretch wrap.
+        const cartonGeo = new THREE.BoxGeometry(0.88, 0.52, 0.94);
+        const wrap = new THREE.MeshStandardMaterial({ color: 0xf2f4f6, roughness: 0.3, transparent: true, opacity: 0.22, depthWrite: false });
+        for (const x of [-2.7, 5.8]) {
+          pallet(x, 1.9, 2.0);
+          for (let layer = 0; layer < 3; layer++)
+            for (const dx of [-0.46, 0.46])
+              for (const dz of [-0.48, 0.48]) {
+                const c = add(cartonGeo, cardMat, x + dx, 1.9 + layer * 0.53, dz);
+                c.rotation.y = ((layer + dx + dz) % 2) * 0.01;
+              }
+          add(new THREE.BoxGeometry(1.86, 1.62, 1.98), wrap, x, 2.43, 0);
+        }
         const inside = new THREE.MeshStandardMaterial({ color: 0x9f7644, roughness: 1 });
         const box = new THREE.Group();
         box.position.set(1.55, 1.64, 0);
@@ -269,11 +278,12 @@ export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; depar
         tape.scale.x = 0.001;
         tape.visible = false;
 
-        // Check tags.
-        const tagGeo = new THREE.BoxGeometry(1.5, 0.32, 0.03);
-        const HOVER = new THREE.Vector3(1.55, 1.64 + H + 1.25, 0);
-        const ENTER = new THREE.Vector3(-14, 7, -4);
-        const tagItems: { mesh: THREE_NS.Mesh; tex: THREE_NS.CanvasTexture; drawn: string }[] = [];
+        // Check tags: each has a slot inside the box; it appears above the slot and drops in.
+        const tagGeo = new THREE.BoxGeometry(1.2, 0.26, 0.025);
+        const slot = (n: number) => new THREE.Vector3(1.55 - 0.5 + (n % 3) * 0.5, 1.64 + 0.1 + Math.floor(n / 3) * 0.035, -0.4 + (n % 2) * 0.7);
+        const ABOVE = 1.64 + H + 0.9;
+        const GRAVITY = 9;
+        const tagItems: { mesh: THREE_NS.Mesh; tex: THREE_NS.CanvasTexture; drawn: string; vy: number; state: string }[] = [];
         const drawTag = (tex: THREE_NS.CanvasTexture, name: string, color: string) => {
           const c = tex.image as HTMLCanvasElement;
           const g = c.getContext("2d")!;
@@ -290,13 +300,12 @@ export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; depar
         };
         for (let i = 0; i < 10; i++) {
           const tex = canvasTexture(THREE, 640, 136, () => {});
-          const mat = new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.45 });
+          const mat = new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.6, opacity: 0 });
           const mesh = new THREE.Mesh(tagGeo, mat);
           mesh.castShadow = true;
           mesh.visible = false;
-          mesh.position.copy(ENTER);
           scene.add(mesh);
-          tagItems.push({ mesh, tex, drawn: "" });
+          tagItems.push({ mesh, tex, drawn: "", vy: 0, state: "pending" });
         }
 
         // The ferry, docked beyond the quay to screen-right.
@@ -341,18 +350,23 @@ export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; depar
         const still = prefersReducedMotion();
         const clock = new THREE.Clock();
         let departT0 = -1;
+        let sealedAt = -1;
+        let sealedFor = 0;
         let frameNo = 0;
         const tmp = new THREE.Vector3();
         const ease = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
         const clamp = (x: number) => Math.min(1, Math.max(0, x));
 
         const frame = () => {
-          const now = clock.getElapsedTime();
-          const { tags: tg, departing } = live.current;
+          // Delta first: getElapsedTime() would consume it.
+          const dt = Math.min(0.05, clock.getDelta());
+          const now = clock.elapsedTime;
+          const { tags: tg, done, departing } = live.current;
 
-          // Tags.
+          // Tags: appear above their slot, then drop straight down.
           let packed = 0;
           let floorSlot = 0;
+          const lorryOffset = lorry.parent === scene ? lorry.position : null;
           tg.forEach((t, i) => {
             const item = tagItems[i];
             if (!item) return;
@@ -362,42 +376,60 @@ export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; depar
               item.drawn = `${t.name}|${color}`;
             }
             const m = item.mesh;
+            const mat = m.material as THREE_NS.MeshStandardMaterial;
+            if (item.state !== t.state) {
+              item.state = t.state;
+              item.vy = 0;
+            }
             if (t.state === "pending") {
               m.visible = false;
-              m.position.copy(ENTER);
+              mat.opacity = 0;
               return;
             }
             m.visible = true;
+            mat.opacity = still ? 1 : Math.min(1, mat.opacity + dt * 4);
+            const isPacked = PACKED.has(t.state);
+            // Target: its slot in the box, or the ground beside the lorry for a failed check.
+            const target = isPacked ? slot(packed) : new THREE.Vector3(3.4 - (floorSlot % 3) * 1.5, 0.03 + Math.floor(floorSlot / 3) * 0.02, -2.6 - Math.floor(floorSlot / 3) * 0.5);
+            if (lorryOffset) target.add(isPacked ? lorryOffset : new THREE.Vector3(lorryOffset.x, 0, 0));
+            if (isPacked) packed++;
+            else floorSlot++;
             if (t.state === "checking") {
-              tmp.copy(HOVER);
-              tmp.y += Math.sin(now * 3) * 0.06;
-              m.rotation.set(-0.2, Math.PI + Math.sin(now * 1.4) * 0.12, 0);
-            } else if (PACKED.has(t.state)) {
-              // Into the box (in lorry space → world).
-              tmp.set(1.55 - 0.55 + (packed % 3) * 0.55, 1.64 + 0.12 + Math.floor(packed / 3) * 0.05, -0.35 + (packed % 2) * 0.6).add(lorry.position);
-              m.rotation.set(-Math.PI / 2, 0, 0.25 * ((packed % 3) - 1));
-              packed++;
-              // Hide once inside a closed box.
-              m.visible = !(departing || flapsClosed(packed) >= 4);
-            } else {
-              // Not packed: on the ground beside the lorry, in front of the camera.
-              tmp.set(3.2 - (floorSlot % 3) * 1.7, 0.03 + floorSlot * 0.02, -4.2 - Math.floor(floorSlot / 3) * 0.6).add(new THREE.Vector3(lorry.position.x, 0, 0));
-              m.rotation.set(-Math.PI / 2, 0, Math.PI + 0.1 * ((floorSlot % 3) - 1));
-              floorSlot++;
+              m.position.set(target.x, ABOVE, target.z);
+              m.rotation.set(-Math.PI / 2, 0, 0);
+              return;
             }
-            if (still) m.position.copy(tmp);
-            else m.position.lerp(tmp, 0.1);
+            if (!isPacked && m.position.y > 1.5) {
+              // A failed check slides off the side of the lorry before falling.
+              m.position.x += (target.x - m.position.x) * (still ? 1 : 0.08);
+              m.position.z += (target.z - m.position.z) * (still ? 1 : 0.08);
+            } else {
+              m.position.x = target.x;
+              m.position.z = target.z;
+            }
+            if (still) m.position.y = target.y;
+            else if (m.position.y > target.y) {
+              item.vy += GRAVITY * dt;
+              m.position.y = Math.max(target.y, m.position.y - item.vy * dt);
+            } else m.position.y = target.y;
+            m.rotation.set(-Math.PI / 2, 0, 0);
+            // Out of sight once the box is closed.
+            m.visible = !(isPacked && (departing || sealedFor > 1.6));
           });
 
-          // Flaps close as checks are packed; tape when all ten are in.
-          const closed = flapsClosed(packed);
+          // The box stays open while checking; once all ten have passed and checking is done,
+          // the flaps fold down one after another, then the tape goes on.
+          const sealedNow = done && isSealed(packed);
+          if (sealedNow && sealedAt < 0) sealedAt = now;
+          if (!sealedNow) sealedAt = -1;
+          sealedFor = sealedAt < 0 ? 0 : still ? 99 : now - sealedAt;
           flaps.forEach((f, i) => {
-            const target = i < closed ? 0 : f.open;
-            f.g.rotation[f.axis] = still ? target : f.g.rotation[f.axis] + (target - f.g.rotation[f.axis]) * 0.08;
+            const target = sealedFor > 0.4 + i * 0.35 ? 0 : f.open;
+            f.g.rotation[f.axis] = still ? target : f.g.rotation[f.axis] + (target - f.g.rotation[f.axis]) * 0.1;
           });
-          const sealed = isSealed(packed);
-          tape.visible = sealed;
-          tape.scale.x = still ? (sealed ? 1 : 0.001) : sealed ? Math.min(1, tape.scale.x + 0.03) : 0.001;
+          const taped = sealedFor > 0.4 + 4 * 0.35 + 0.2;
+          tape.visible = taped;
+          tape.scale.x = still ? (taped ? 1 : 0.001) : taped ? Math.min(1, tape.scale.x + 0.04) : 0.001;
 
           // Departure: road → ferry ramp → onto the deck → the ferry sails.
           if (departing && departT0 < 0) departT0 = now;
