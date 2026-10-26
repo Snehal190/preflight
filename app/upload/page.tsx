@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Booking } from "@/lib/types";
 import type { BookingState, Evaluation } from "@/lib/booking/state";
 import type { ParseWarning } from "@/lib/parse";
-import { saveBatch, type StoredBatch } from "@/lib/client/store";
+import { recordHistory, saveBatch, type StoredBatch } from "@/lib/client/store";
 
 interface UploadResponse {
   batch: { id: string; createdAt: string; files: string[]; warnings: ParseWarning[]; bookings: { booking: Booking; label: string; state: BookingState; evaluation: Evaluation }[] };
@@ -40,6 +40,7 @@ export default function UploadPage() {
         })),
       };
       if (!saveBatch(batch)) throw new Error("Couldn't save the results in this browser (storage full or blocked).");
+      recordHistory(batch, "Uploaded");
       // One booking: straight to its verification. Several: the results table first.
       router.push(batch.bookings.length === 1 ? `/batch/${batch.id}/${encodeURIComponent(batch.bookings[0].key)}` : `/batch/${batch.id}`);
     } catch (err) {

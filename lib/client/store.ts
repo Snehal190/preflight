@@ -4,6 +4,7 @@ import type { Booking } from "../types";
 import type { BookingState, Evaluation } from "../booking/state";
 import type { ParseWarning } from "../parse";
 import { changeChips } from "../booking/changes";
+import { historyEntry } from "../history";
 
 // Browser-side store for local testing, until the Neon database (step 9) holds bookings and
 // version history. Every read/write is guarded: storage can be unavailable or full.
@@ -71,6 +72,20 @@ export async function postJson<T>(url: string, body: unknown): Promise<T> {
 }
 
 /**
+ * Adds the batch's bookings to the shared history (all of them, or just `keys`). Never blocks or
+ * breaks the page: history is a record, not part of the check.
+ */
+export function recordHistory(batch: StoredBatch, lastChange: string, keys?: string[]): void {
+  const at = new Date().toISOString();
+  const source = batch.id.startsWith("chat-") ? "chat" : "upload";
+  const entries = batch.bookings
+    .filter((b) => !keys || keys.includes(b.key))
+    .map((b) => historyEntry({ batchId: batch.id, source, files: batch.files, booking: b.booking, evaluation: b.evaluation, at, lastChange }));
+  if (!entries.length) return;
+  void postJson("/api/history", { entries }).catch(() => undefined);
+}
+
+/**
  * Re-runs every check on the server for a changed booking, then saves it as a new version with
  * change chips (spec §12.8). Used by the booking page and the upload results page.
  */
@@ -91,5 +106,6 @@ export async function saveChange(
     versions: [...b.versions, { n: b.versions.length + 1, at: new Date().toISOString(), booking, state: res.state, chips, cause }],
   }));
   if (!batch) throw new Error("Couldn't save in this browser (storage full or blocked).");
+  recordHistory(batch, cause, [entry.key]);
   return { batch, chips, evaluation: res.evaluation };
 }

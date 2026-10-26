@@ -15,6 +15,7 @@ const NAV = [
   { href: "/", label: "Check a shipment" },
   { href: "/chat", label: "Speak or type" },
   { href: "/upload", label: "Upload sheets" },
+  { href: "/history", label: "History" },
   { href: "/rules", label: "Rules" },
 ];
 
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <nav aria-label="Main (compact)" className="md:hidden flex flex-1 items-center gap-3 text-sm font-medium text-ink-2">
             <Link href="/chat">Speak</Link>
             <Link href="/upload">Upload</Link>
+            <Link href="/history">History</Link>
             <Link href="/rules">Rules</Link>
           </nav>
           <Link href="/chat" className="btn hidden sm:inline-flex">New booking</Link>

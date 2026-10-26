@@ -2,7 +2,7 @@
 
 import type { ChatSession } from "../chat/session";
 import type { Evaluation } from "../booking/state";
-import { loadBatch, saveBatch, type StoredBatch } from "./store";
+import { loadBatch, recordHistory, saveBatch, type StoredBatch } from "./store";
 
 // Chat sessions in the browser until the database step. Each chat is mirrored into a one-booking
 // "batch" so the same Check / Carrier / Take-off pages serve both paths.
@@ -55,5 +55,8 @@ export function saveChat(c: StoredChat, cause: string): boolean {
       },
     ],
   };
-  return saveBatch(batch);
+  if (!saveBatch(batch)) return false;
+  // A chat booking joins the shared history once the seller has confirmed it.
+  if (c.session.flags.readbackConfirmed) recordHistory(batch, prev ? cause : "Booked by voice or chat");
+  return true;
 }
