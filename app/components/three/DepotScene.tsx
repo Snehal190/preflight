@@ -146,7 +146,8 @@ export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; depar
         // ---------- the lorry (cab faces −x, which is screen-right) ----------
         const lorry = new THREE.Group();
         const paint = new THREE.MeshPhysicalMaterial({ color: 0xf2f4f7, roughness: 0.32, metalness: 0.15, clearcoat: 0.8, clearcoatRoughness: 0.2 });
-        const steel = new THREE.MeshStandardMaterial({ color: 0x2c4f74, roughness: 0.4, metalness: 0.35 });
+        const steel = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.45, metalness: 0.35 });
+        const brand = new THREE.MeshStandardMaterial({ color: 0xffd21f, roughness: 0.45, metalness: 0.1 });
         const black = new THREE.MeshStandardMaterial({ color: 0x16191d, roughness: 0.8 });
         const chrome = new THREE.MeshStandardMaterial({ color: 0xd8dde3, roughness: 0.15, metalness: 1 });
         const glass = new THREE.MeshPhysicalMaterial({ color: 0x1b2633, roughness: 0.05, metalness: 0.2, transmission: 0, clearcoat: 1 });
@@ -177,7 +178,7 @@ export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; depar
         add(new THREE.CylinderGeometry(0.35, 0.35, 1.2, 20).rotateZ(Math.PI / 2), chrome, -5.2, 1.0, -1.15); // fuel tank
         add(new THREE.BoxGeometry(0.45, 0.08, 0.5), chrome, -6.6, 0.75, -1.3); // step
         // Livery stripe on the cab side
-        add(new THREE.BoxGeometry(2.2, 0.18, 0.02), steel, -6.3, 2.05, -1.27);
+        add(new THREE.BoxGeometry(2.2, 0.22, 0.02), brand, -6.3, 2.05, -1.27);
         // Chassis + flatbed trailer
         add(new THREE.BoxGeometry(13.6, 0.35, 1.0), black, 0.3, 0.95, 0);
         add(new THREE.BoxGeometry(12.2, 0.32, 2.5), steel, 1.5, 1.32, 0); // deck
@@ -238,7 +239,7 @@ export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; depar
           g.fillText("PREFLIGHT", 28, 56);
           g.font = "800 86px Inter, system-ui, sans-serif";
           g.fillText(label, 28, 160);
-          g.fillStyle = "#2f6fd6";
+          g.fillStyle = "#ffd21f";
           g.fillRect(28, 196, w - 56, 14);
         });
         const lbl = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.48), new THREE.MeshStandardMaterial({ map: labelTex, roughness: 0.6 }));
@@ -281,7 +282,7 @@ export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; depar
           g.beginPath();
           g.roundRect(4, 4, c.width - 8, c.height - 8, 30);
           g.fill();
-          g.fillStyle = "#ffffff";
+          g.fillStyle = color.toLowerCase() === "#ffd21f" ? "#111111" : "#ffffff";
           g.font = "700 50px Inter, system-ui, sans-serif";
           g.textBaseline = "middle";
           g.fillText(name, 32, c.height / 2 + 2);
@@ -300,14 +301,14 @@ export function DepotScene({ tags, departing, label }: { tags: DepotTag[]; depar
 
         // The ferry, docked beyond the quay to screen-right.
         const ferry = new THREE.Group();
-        const hullMat = new THREE.MeshStandardMaterial({ color: 0x1e3a5c, roughness: 0.5, metalness: 0.2 });
+        const hullMat = new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.5, metalness: 0.2 });
         const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf4f6f8, roughness: 0.5 });
         const addF = (geo: THREE_NS.BufferGeometry, mat: THREE_NS.Material, x: number, y: number, z: number) => add(geo, mat, x, y, z, ferry);
         addF(new THREE.BoxGeometry(46, 4.2, 15), hullMat, 0, -1.9, 0);
         addF(new THREE.BoxGeometry(46, 0.25, 15), new THREE.MeshStandardMaterial({ color: 0x59626c, roughness: 0.9 }), 0, 0.12, 0);
         addF(new THREE.BoxGeometry(14, 6, 13), whiteMat, 14, 3.2, 0);
         addF(new THREE.BoxGeometry(10, 2.5, 11), whiteMat, 15, 7.4, 0);
-        addF(new THREE.CylinderGeometry(1.1, 1.3, 4, 16), new THREE.MeshStandardMaterial({ color: 0xc9302c, roughness: 0.5 }), 17, 10.2, 0);
+        addF(new THREE.CylinderGeometry(1.1, 1.3, 4, 16), new THREE.MeshStandardMaterial({ color: 0xffd21f, roughness: 0.5 }), 17, 10.2, 0);
         const winMat = new THREE.MeshStandardMaterial({ color: 0x1b2633, roughness: 0.1, metalness: 0.4 });
         for (let i = 0; i < 6; i++) addF(new THREE.BoxGeometry(1.2, 0.8, 0.05), winMat, 9 + i * 2, 4.4, -6.53);
         ferry.position.set(-46, -0.1, 21);

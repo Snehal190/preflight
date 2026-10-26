@@ -6,9 +6,9 @@ export const metadata = { title: "Rules · PreFlight" };
 const LEVELS = [
   { badge: "Must fix", cls: "bg-bad text-white", text: "The shipment would be held or refused. You can't continue until it's fixed." },
   { badge: "Please check", cls: "bg-warn text-white", text: "A real risk. Fix it, or tick “I understand this risk” to continue." },
-  { badge: "Question for you", cls: "bg-accent text-ink border border-ink", text: "We can't tell from what you gave us — answer yes or no." },
-  { badge: "Missing info", cls: "bg-ink text-white", text: "A value is blank or can't be read, so the check can't run yet." },
-  { badge: "Advice", cls: "bg-note text-white", text: "Worth a look, but it never blocks your booking." },
+  { badge: "Question for you", cls: "bg-accent text-black border border-ink", text: "We can't tell from what you gave us — answer yes or no." },
+  { badge: "Missing info", cls: "bg-ink text-paper", text: "A value is blank or can't be read, so the check can't run yet." },
+  { badge: "Advice", cls: "bg-note text-paper", text: "Worth a look, but it never blocks your booking." },
 ];
 
 export default function RulesPage() {
@@ -44,7 +44,7 @@ export default function RulesPage() {
               <li key={id} className="card card-hover p-5 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-baseline gap-3">
-                    <span className="mono text-2xl font-bold leading-none text-accent/50">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="mono text-2xl font-bold leading-none text-accent-ink/50">{String(i + 1).padStart(2, "0")}</span>
                     <h3 className="font-bold text-lg leading-tight">{r.plainName}</h3>
                   </div>
                   <span className={`badge ${must ? "bg-bad text-white" : "bg-warn text-white"}`}>{must ? "Must fix" : "Please check"}</span>

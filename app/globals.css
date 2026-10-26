@@ -1,20 +1,23 @@
 @import "tailwindcss";
 
-/* Design system (from the PreFlight one-screen inspiration): calm logistics SaaS — Inter + JetBrains
-   Mono, soft blue-grey canvas, white cards with light shadows, steel/blue accent, green/amber/red
-   states, automatic dark mode. */
+/* Design system: black, white, yellow and grey. Inter + JetBrains Mono, light-grey canvas, white
+   cards, yellow accent (always with black text on it — yellow text on white is unreadable), black
+   headings and dark buttons. Red/green/amber appear only as small status colours. Dark mode too.
+   (Token names --blue* are kept so components don't change; they now hold the yellow accent.) */
 :root {
-  --bg: #eef2f6;
+  --bg: #f2f2f0;
   --surface: #ffffff;
-  --surface-2: #f6f8fb;
-  --ink: #0f1b2d;
-  --ink-2: #4a5a6e;
-  --ink-3: #8090a2;
-  --line: #e1e6ed;
-  --blue: #2f6fd6;
-  --blue-ink: #1f4f8a;
-  --blue-soft: #e6eefb;
-  --steel: #2c4f74;
+  --surface-2: #f6f6f4;
+  --ink: #111111;
+  --ink-2: #4b4b4b;
+  --ink-3: #8a8a8a;
+  --line: #e3e3e0;
+  --blue: #ffd21f;
+  --blue-ink: #111111;
+  --blue-hover: #f2c200;
+  --blue-soft: #fff6cc;
+  --on-accent: #111111;
+  --steel: #111111;
   --pass: #1d8a5a;
   --pass-soft: #e2f3ea;
   --amber: #b97f00;
@@ -22,20 +25,20 @@
   --red: #c9302c;
   --red-soft: #fbe5e4;
   --radius: 14px;
-  --shadow: 0 1px 2px rgba(15, 27, 45, 0.05), 0 8px 24px rgba(15, 27, 45, 0.06);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.06);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0d141e; --surface: #131d2a; --surface-2: #182434; --ink: #e8eef6; --ink-2: #a9b7c8; --ink-3: #74859a; --line: #233142;
-    --blue-soft: #17304f; --pass-soft: #12301f; --amber-soft: #33280f; --red-soft: #3a1716;
+    --bg: #0c0c0c; --surface: #161616; --surface-2: #1e1e1e; --ink: #f2f2f0; --ink-2: #b8b8b4; --ink-3: #85857f; --line: #2c2c2a;
+    --blue-ink: #ffd21f; --blue-soft: #2e2810; --steel: #000000; --pass-soft: #12301f; --amber-soft: #33280f; --red-soft: #3a1716;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0d141e; --surface: #131d2a; --surface-2: #182434; --ink: #e8eef6; --ink-2: #a9b7c8; --ink-3: #74859a; --line: #233142;
-  --blue-soft: #17304f; --pass-soft: #12301f; --amber-soft: #33280f; --red-soft: #3a1716;
+  --bg: #0c0c0c; --surface: #161616; --surface-2: #1e1e1e; --ink: #f2f2f0; --ink-2: #b8b8b4; --ink-3: #85857f; --line: #2c2c2a;
+  --blue-ink: #ffd21f; --blue-soft: #2e2810; --steel: #000000; --pass-soft: #12301f; --amber-soft: #33280f; --red-soft: #3a1716;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3);
   color-scheme: dark;
 }
@@ -80,10 +83,12 @@ h1, h2, h3, .display {
   text-wrap: balance;
 }
 
-:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 6px; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 6px; }
 
 @layer components {
-  .eyebrow { font: 700 11px var(--font-jetbrains), monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); }
+  /* Small mono label with a yellow square marker. */
+  .eyebrow { font: 700 11px var(--font-jetbrains), monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+  .eyebrow::before { content: ""; display: inline-block; width: 0.6em; height: 0.6em; margin-right: 0.55em; border-radius: 2px; background: var(--blue); vertical-align: 0.02em; }
   .mono { font-family: var(--font-jetbrains), monospace; }
 
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -92,16 +97,16 @@ h1, h2, h3, .display {
 
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-    border: 1px solid var(--blue); background: var(--blue); color: #fff;
+    border: 1px solid var(--blue); background: var(--blue); color: var(--on-accent);
     padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 13.5px; white-space: nowrap;
     cursor: pointer; transition: background 150ms;
   }
-  .btn:hover:not(:disabled) { background: var(--blue-ink); }
+  .btn:hover:not(:disabled) { background: var(--blue-hover); border-color: var(--blue-hover); }
   .btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .btn-ghost { background: var(--surface); color: var(--ink); border-color: var(--line); }
-  .btn-ghost:hover:not(:disabled) { background: var(--surface-2); }
-  .btn-dark { background: var(--steel); border-color: var(--steel); color: #fff; }
-  .btn-dark:hover:not(:disabled) { background: var(--blue-ink); }
+  .btn-ghost:hover:not(:disabled) { background: var(--surface-2); border-color: var(--ink-3); }
+  .btn-dark { background: #111111; border-color: #111111; color: #ffffff; }
+  .btn-dark:hover:not(:disabled) { background: #2a2a2a; border-color: #2a2a2a; }
 
   .badge {
     display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 999px; padding: 2px 8px;
@@ -115,16 +120,16 @@ h1, h2, h3, .display {
     background-size: 32px 32px;
   }
   /* Key word accent in headings. */
-  .hl { color: var(--blue); }
+  .hl { background: linear-gradient(transparent 58%, var(--blue) 58%); padding: 0 0.08em; }
 
   .mic {
     display: inline-flex; align-items: center; gap: 0.6rem; border-radius: 999px; padding: 0.7rem 1.2rem;
-    font-weight: 700; font-size: 14px; background: var(--blue); color: #fff; border: 1px solid var(--blue);
+    font-weight: 700; font-size: 14px; background: var(--blue); color: var(--on-accent); border: 1px solid var(--blue);
     transition: background 150ms, transform 150ms;
   }
-  .mic:hover:not(:disabled) { background: var(--blue-ink); }
+  .mic:hover:not(:disabled) { background: var(--blue-hover); }
   .mic:disabled { opacity: 0.5; }
-  .mic-on { background: var(--red); border-color: var(--red); }
+  .mic-on { background: var(--red); border-color: var(--red); color: #fff; }
   .mic-dot { width: 0.6rem; height: 0.6rem; border-radius: 999px; background: #fff; animation: pulse 1s ease-in-out infinite; }
 }
 

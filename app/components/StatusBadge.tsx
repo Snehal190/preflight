@@ -4,7 +4,7 @@ const LABEL: Record<BookingStatus, string> = { blocked: "Blocked", check: "Check
 const CLASS: Record<BookingStatus, string> = {
   blocked: "bg-bad text-white",
   check: "bg-warn text-white",
-  ready: "bg-accent text-ink border border-ink",
+  ready: "bg-accent text-black border border-ink",
 };
 
 export function StatusBadge({ status }: { status: BookingStatus }) {

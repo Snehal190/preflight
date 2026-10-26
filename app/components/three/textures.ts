@@ -45,11 +45,11 @@ export function prefersReducedMotion(): boolean {
 
 export const STATE_HEX: Record<string, string> = {
   pending: "#8a97a6",
-  checking: "#2f6fd6",
+  checking: "#ffd21f",
   pass: "#1d8a5a",
   amber: "#b97f00",
   fail: "#c9302c",
   na: "#74859a",
   missing: "#0f1b2d",
-  question: "#2c4f74",
+  question: "#4b4b4b",
 };

@@ -65,7 +65,7 @@ export default function UploadPage() {
             setFiles(Array.from(e.dataTransfer.files));
           }}
         >
-          <span className="grid h-11 w-11 place-items-center rounded-xl bg-accent-soft text-xl text-accent" aria-hidden>⬆</span>
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-accent-soft text-xl text-accent-ink" aria-hidden>⬆</span>
           <span className="font-semibold">Drop your files here, or click to choose</span>
           <span className="mono text-xs text-ink-3">.xlsx or .csv · max 4 MB · 2,000 rows per sheet</span>
           <input type="file" multiple accept=".xlsx,.csv" className="sr-only" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />

@@ -11,9 +11,9 @@ import Link from "next/link";
 export function stateLabel(r: CheckResult): { text: string; cls: string } {
   switch (r.status) {
     case "missing_data":
-      return { text: "Missing info", cls: "bg-ink text-white" };
+      return { text: "Missing info", cls: "bg-ink text-paper" };
     case "needs_answer":
-      return { text: "Question for you", cls: "bg-accent text-ink border border-ink" };
+      return { text: "Question for you", cls: "bg-accent text-black border border-ink" };
     case "pass":
       return { text: "OK", cls: "bg-good/15 text-good" };
     case "not_applicable":
@@ -21,7 +21,7 @@ export function stateLabel(r: CheckResult): { text: string; cls: string } {
     case "fail":
       if (r.severity === "red") return { text: r.nonBlocking ? "Note — doesn't block" : "Must fix", cls: "bg-bad text-white" };
       if (r.severity === "amber") return { text: "Please check", cls: "bg-warn text-white" };
-      return { text: "Advice", cls: "bg-note text-white" };
+      return { text: "Advice", cls: "bg-note text-paper" };
   }
 }
 

@@ -17,10 +17,10 @@ function display(field: string, f: FieldValue<unknown>): string {
 const SOURCE_CLS: Record<string, string> = {
   file: "bg-sage/30",
   stated: "bg-sage/30",
-  derived: "bg-accent-soft text-accent",
+  derived: "bg-accent-soft text-accent-ink",
   confirmed: "bg-sage/50",
   assumed: "bg-accent font-bold",
-  fixed: "bg-ink text-white",
+  fixed: "bg-ink text-paper",
 };
 
 function Row({ label, field, f, onSave, busy }: { label: string; field: string; f: FieldValue<unknown>; onSave: (text: string) => void; busy: boolean }) {

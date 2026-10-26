@@ -26,7 +26,7 @@ const DOT: Record<StepState | "checking" | "pending", string> = {
   amber: "bg-warn",
   fail: "bg-bad scale-y-150",
   missing: "bg-bad scale-y-150",
-  question: "bg-steel",
+  question: "bg-ink-2 text-paper",
 };
 
 const TAG_NAME: Record<string, string> = {
@@ -221,7 +221,7 @@ export default function Home() {
             ["0", "rule codes to learn — everything in plain words"],
           ].map(([n, t]) => (
             <li key={t} className="card flex items-center gap-4 p-5">
-              <span className="mono text-3xl font-bold text-accent">{n}</span>
+              <span className="mono grid h-12 min-w-12 place-items-center rounded-xl bg-accent px-2 text-2xl font-bold text-black">{n}</span>
               <span className="text-ink-2">{t}</span>
             </li>
           ))}
@@ -461,7 +461,7 @@ export default function Home() {
                         <input type="radio" name="carrier" checked={sel} disabled={out || busy || phase === "departing"} onChange={() => chooseCarrier(r.id)} />
                         <span className="flex-1 font-semibold">
                           {r.name} <span className="font-normal text-ink-3">· {r.service}</span>
-                          {r.id === c.recommended && <span className="badge ml-2 bg-accent-soft text-accent">Recommended</span>}
+                          {r.id === c.recommended && <span className="badge ml-2 bg-accent-soft text-accent-ink">Recommended</span>}
                         </span>
                         <span className="mono font-bold">{r.totalCost ? fmtGBP(r.totalCost) : "—"}</span>
                       </div>
@@ -490,7 +490,7 @@ export default function Home() {
         <ol className="grid gap-5">
           {STEPS.map((s) => (
             <li key={s.n} className="card card-hover flex gap-6 p-6 sm:p-8">
-              <span className="mono text-4xl font-bold text-accent/40">{s.n}</span>
+              <span className="mono text-4xl font-bold text-accent-ink/40">{s.n}</span>
               <div className="space-y-1">
                 <h3 className="text-xl">{s.title}</h3>
                 <p className="text-ink-2">{s.text}</p>

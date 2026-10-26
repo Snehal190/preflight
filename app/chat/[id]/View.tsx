@@ -196,8 +196,8 @@ export default function View() {
           <ol className="flex-1 space-y-4 p-4 sm:p-6 overflow-y-auto grid-bg" aria-live="polite">
             {session.messages.map((m) => (
               <li key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${m.role === "assistant" ? "bg-paper border border-ink/10 rounded-tl-sm" : "bg-ink text-white rounded-tr-sm"}`}>
-                  <p className={`text-[0.7rem] font-bold uppercase tracking-wider mb-1 ${m.role === "assistant" ? "text-accent" : "text-white/70"}`}>
+                <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${m.role === "assistant" ? "bg-paper border border-ink/10 rounded-tl-sm" : "bg-ink text-paper rounded-tr-sm"}`}>
+                  <p className={`text-[0.7rem] font-bold uppercase tracking-wider mb-1 ${m.role === "assistant" ? "text-accent-ink" : "text-paper/70"}`}>
                     {m.role === "assistant" ? "PreFlight" : m.transcript ? "You · spoken" : "You"}
                   </p>
                   <Rich text={m.text} />
@@ -281,7 +281,7 @@ export default function View() {
                 role="tab"
                 aria-selected={tab === t}
                 onClick={() => setTab(t)}
-                className={`flex-1 rounded-full px-3 py-1.5 transition-colors ${tab === t ? "bg-ink text-white" : "hover:bg-ink/5"}`}
+                className={`flex-1 rounded-full px-3 py-1.5 transition-colors ${tab === t ? "bg-ink text-paper" : "hover:bg-ink/5"}`}
               >
                 {t === "guide" ? `What to tell us · ${doneCount}/${total.length}` : "Your booking"}
               </button>
