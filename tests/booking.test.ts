@@ -83,7 +83,7 @@ describe("take-off page text", () => {
   it("summarises BK-001 in the spec's format", async () => {
     const b = bk001();
     expect(takeoffSummary(b, await evaluate(b))).toBe(
-      "90 cartons of Ceramic coffee mug, 350 ml on 3 pallets, Manchester → Frankfurt (warehouse), Carrier A Road economy, £540, collection Thu 05 Nov 2026, estimated delivery Thu 12 Nov 2026.",
+      "90 cartons of Ceramic coffee mug, 350 ml on 3 pallets, Leeds → Frankfurt (warehouse), Carrier A Road economy, £540, collection Thu 05 Nov 2026, estimated delivery Thu 12 Nov 2026.",
     );
   });
 
@@ -92,7 +92,7 @@ describe("take-off page text", () => {
     const steps = whatHappensNext(b, await evaluate(b));
     expect(steps).toEqual([
       "Print the commercial invoice and attach it to the shipment.",
-      "Collection by Carrier A from Manchester on Thu 05 Nov 2026.",
+      "Collection by Carrier A from Leeds on Thu 05 Nov 2026.",
       "UK export customs clearance (uses the HS codes, values and origins on the invoice).",
       "In transit, 5 working days.",
       "Import customs in Germany.",

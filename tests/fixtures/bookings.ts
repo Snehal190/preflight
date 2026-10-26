@@ -36,7 +36,7 @@ export function bk001(overrides: Partial<Booking> = {}): Booking {
     key: "batch:BK-001",
     bookingId: fv("BK-001"),
     sellerName: fv("Northfield Goods"),
-    originCity: fv("Manchester" as const),
+    originCity: fv("Leeds" as const),
     originCountry: fv("United Kingdom" as const),
     destinationCity: fv("Frankfurt" as const),
     destinationCountry: fv("Germany" as const),

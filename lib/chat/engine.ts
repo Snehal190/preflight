@@ -179,7 +179,7 @@ function interpret(kind: FieldKind, op: ExtractOperation, today: string): { ok: 
 
 function listOptions(list: ListKind): string {
   const opts: Record<ListKind, string> = {
-    originCity: "I can only book from London, Manchester, Birmingham or Leeds.",
+    originCity: "I can only book from London, Birmingham or Leeds.",
     destinationCity: "I can only deliver to Berlin, Frankfurt, Hamburg, Paris, Lyon, Amsterdam or Rotterdam.",
     destinationCountry: "I can only deliver to Germany, France or the Netherlands.",
     destinationType: "Is it a warehouse or a business address?",
@@ -491,7 +491,7 @@ export function missingQuestions(s: ChatSession): Question[] {
   const missing = (f: FieldValue<unknown>) => f.value === null;
 
   // 1 route
-  ask("originCity", "Which UK city is it collected from: London, Manchester, Birmingham or Leeds?", missing(b.originCity));
+  ask("originCity", "Which UK city is it collected from: London, Birmingham or Leeds?", missing(b.originCity));
   ask("destinationCity", "Where is it going: Berlin, Frankfurt, Hamburg, Paris, Lyon, Amsterdam or Rotterdam?", missing(b.destinationCity));
   // 2 items
   if (b.items.length === 0) ask("items", "What are you shipping? A short description of each product, with how many units and the price per unit.", true);

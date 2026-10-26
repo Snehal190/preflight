@@ -10,14 +10,14 @@ const bookings = [
   ["BK-101", "Clean Co", "London, United Kingdom", "Hamburg, Germany", "Business address", "12-11-2026", "Balanced", 2, 40, 960, "GBP", 300, ""], // clean
   ["BK-102", "Typo Traders", "Leeds, United Kingdom", "Paris, France", "Warehouse", "10-11-2026", "Cheapest", 3, 90, 5400, "GBP", 1000, "Yes"], // quantity 1800 (swap)
   ["BK-103", "Blank Fields Ltd", "Birmingham, United Kingdom", "Amsterdam, Netherlands", "Warehouse", "16-11-2026", "Most reliable", 1, 20, 400, "GBP", 150, "No"], // HS blank, origin blank, no appt
-  ["BK-104", "Heavy Haul", "Manchester, United Kingdom", "Berlin, Germany", "Business address", "09-11-2026", "Fastest", 4, 100, 12000, "GBP", 1800, ""], // C over weight → B
+  ["BK-104", "Heavy Haul", "Leeds, United Kingdom", "Berlin, Germany", "Business address", "09-11-2026", "Fastest", 4, 100, 12000, "GBP", 1800, ""], // C over weight → B
   ["BK-105", "Gadget Hub", "London, United Kingdom", "Rotterdam, Netherlands", "Business address", "11-11-2026", "Cheapest", 1, 20, 500, "GBP", 120, ""], // power bank + portable charger
   ["BK-106", "Stone & Co", "Leeds, United Kingdom", "Lyon, France", "Business address", "13-11-2026", "Cheapest", 3, 30, 3000, "GBP", 2400, ""], // 800 kg/pallet
   ["BK-107", "Late Larry", "Birmingham, United Kingdom", "Frankfurt, Germany", "Warehouse", "01-10-2026", "Cheapest", 3, 100, 5400, "GBP", 620, "Yes"], // cartons 100 vs 90, past date
   ["BK-108", "Mixed Up", "London, United Kingdom", "Paris, Germany", "Business address", "12-11-2026", "", 2, 40, 960, "GBP", 300, ""], // city/country, no priority
   ["BK-109", "Twin One", "London, United Kingdom", "Berlin, Germany", "Business address", "12-11-2026", "Cheapest", 2, 40, 960, "GBP", 300, ""], // duplicate ID
   ["bk-109", "Twin Two", "Leeds, United Kingdom", "Hamburg, Germany", "Business address", "12-11-2026", "Cheapest", 2, 40, 960, "GBP", 300, ""], // duplicate ID
-  ["BK-110", "Date Dan", "Manchester, United Kingdom", "Amsterdam, Netherlands", "Business address", "31-02-2026", "Fastest", 1, 10, 250, "GBP", 80, ""], // impossible date, HS lost zero
+  ["BK-110", "Date Dan", "Leeds, United Kingdom", "Amsterdam, Netherlands", "Business address", "31-02-2026", "Fastest", 1, 10, 250, "GBP", 80, ""], // impossible date, HS lost zero
 ];
 const items = [
   ["BK-001", "MUG-01", "Ceramic coffee mug, 350 ml", "691200", 1080, 5, 12, 90, 0.5, "United Kingdom"],

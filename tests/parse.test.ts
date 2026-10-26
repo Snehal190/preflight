@@ -253,7 +253,7 @@ describe("files", () => {
     const csv = (headers: string[], rows: (string | number)[][]) => new TextEncoder().encode([headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n"));
     const o = ok(
       await parseUpload([
-        { name: "bookings.csv", bytes: csv(BOOKING_HEADERS, [bookingRow({ "Booking ID": "CSV-1", Pallets: "3" }).map(String)]) },
+        { name: "bookings.csv", bytes: csv(BOOKING_HEADERS, [bookingRow({ "Booking ID": "CSV-1", Origin: "Leeds, United Kingdom", Pallets: "3" }).map(String)]) },
         { name: "items.csv", bytes: csv(ITEM_HEADERS, [itemRow({ "Booking ID": "CSV-1", "HS code": "090111" }).map(String)]) },
       ]),
     );

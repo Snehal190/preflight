@@ -28,10 +28,10 @@ const questionsIn = (reply: string) => reply.split("\n").filter((l) => /^\d\. /.
 /** A complete BK-001-like conversation, in a few turns. */
 async function fullBooking(): Promise<ChatSession> {
   let s = newChatSession("abc123");
-  const m1 = "Sending 1,080 ceramic mugs from Manchester to Frankfurt, £5 each, 12 per box, 3 pallets";
+  const m1 = "Sending 1,080 ceramic mugs from Leeds to Frankfurt, £5 each, 12 per box, 3 pallets";
   s = (
     await turn(s, m1, [
-      op("originCity", "Manchester", "from Manchester"),
+      op("originCity", "Leeds", "from Leeds"),
       op("destinationCity", "Frankfurt", "to Frankfurt"),
       op("description", "ceramic mugs", "ceramic mugs", { op: "add_item", itemRef: "ceramic mugs" }),
       op("quantity", "1,080", "1,080 ceramic mugs", { itemRef: "ceramic mugs" }),
@@ -61,6 +61,7 @@ describe("interpreting values in code", () => {
     expect(matchAllowed("destinationCity", "Munich").ok).toBe(false);
     expect(matchAllowed("originCity", "Bristol").ok).toBe(false);
     expect(matchAllowed("originCity", "Munich").ok).toBe(false); // Fuse alone would say Manchester
+    expect(matchAllowed("originCity", "Manchester").ok).toBe(false); // product owner: we do not collect from Manchester
     expect(matchAllowed("destinationCountry", "Holland")).toMatchObject({ value: "Netherlands", how: "synonym" });
     expect(matchAllowed("priority", "cheap")).toMatchObject({ value: "Cheapest", how: "synonym" });
     expect(matchAllowed("destinationType", "3PL")).toMatchObject({ value: "Warehouse" });
@@ -127,7 +128,7 @@ describe("asking only for what's missing (spec §19)", () => {
   it("refuses a city outside the list instead of guessing", async () => {
     const r = await turn(newChatSession("x"), "from Bristol", [op("originCity", "Bristol", "from Bristol")]);
     expect(r.session.booking.originCity.value).toBeNull();
-    expect(r.reply).toContain("I can only book from London, Manchester, Birmingham or Leeds.");
+    expect(r.reply).toContain("I can only book from London, Birmingham or Leeds.");
   });
 
   it("a quote not found in the message → value discarded and asked for", async () => {

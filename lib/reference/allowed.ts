@@ -2,7 +2,8 @@
 
 export const ORIGIN_COUNTRY = "United Kingdom" as const;
 
-export const ORIGIN_CITIES = ["London", "Manchester", "Birmingham", "Leeds"] as const;
+// Manchester removed by the product owner (26 Oct 2026): we do not collect from there.
+export const ORIGIN_CITIES = ["London", "Birmingham", "Leeds"] as const;
 export type OriginCity = (typeof ORIGIN_CITIES)[number];
 
 export const DESTINATION_COUNTRIES = ["Germany", "France", "Netherlands"] as const;

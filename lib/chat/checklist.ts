@@ -59,7 +59,7 @@ export function tellUsChecklist(b: Booking, flags: ChatFlags, problems: Record<s
     {
       title: "Route",
       items: [
-        it("Collection city", "London, Manchester, Birmingham or Leeds", one(b.originCity, "originCity"), show(b.originCity)),
+        it("Collection city", "London, Birmingham or Leeds", one(b.originCity, "originCity"), show(b.originCity)),
         it("Destination city", "Berlin, Frankfurt, Hamburg, Paris, Lyon, Amsterdam or Rotterdam", one(b.destinationCity, "destinationCity"), show(b.destinationCity)),
       ],
     },

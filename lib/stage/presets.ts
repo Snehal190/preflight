@@ -92,7 +92,7 @@ export const PRESETS: { id: string; label: string; spec: PresetSpec }[] = [
   {
     id: "BK-012",
     label: "BK-012 · Northfield Goods: all clear",
-    spec: { id: "BK-012", seller: "Northfield Goods", origin: "Manchester", city: "Frankfurt", country: "Germany", type: "Warehouse", readyInDays: 4, priority: "Cheapest", pallets: 3, cartons: 90, declared: "5400", gross: "620", appointment: "Yes", items: [MUGS] },
+    spec: { id: "BK-012", seller: "Northfield Goods", origin: "Leeds", city: "Frankfurt", country: "Germany", type: "Warehouse", readyInDays: 4, priority: "Cheapest", pallets: 3, cartons: 90, declared: "5400", gross: "620", appointment: "Yes", items: [MUGS] },
   },
   {
     id: "BK-102",
@@ -113,7 +113,7 @@ export const PRESETS: { id: string; label: string; spec: PresetSpec }[] = [
   {
     id: "BK-104",
     label: "BK-104 · Heavy Haul: too heavy for express",
-    spec: { id: "BK-104", seller: "Heavy Haul", origin: "Manchester", city: "Berlin", country: "Germany", type: "Business address", readyInDays: 3, priority: "Fastest", pallets: 4, cartons: 100, declared: "12000", gross: "1800", appointment: "No", items: [{ sku: "TILE-01", description: "Ceramic floor tile", hs: "690721", qty: 2400, price: "5", upc: 24, cartons: 100, kg: "0.6", origin: "Turkey" }] },
+    spec: { id: "BK-104", seller: "Heavy Haul", origin: "Leeds", city: "Berlin", country: "Germany", type: "Business address", readyInDays: 3, priority: "Fastest", pallets: 4, cartons: 100, declared: "12000", gross: "1800", appointment: "No", items: [{ sku: "TILE-01", description: "Ceramic floor tile", hs: "690721", qty: 2400, price: "5", upc: 24, cartons: 100, kg: "0.6", origin: "Turkey" }] },
   },
   {
     id: "BK-107",
