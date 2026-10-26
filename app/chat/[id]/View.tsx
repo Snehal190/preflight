@@ -45,6 +45,14 @@ function speak(text: string) {
   }
 }
 
+function hush() {
+  try {
+    window.speechSynthesis.cancel();
+  } catch {
+    /* speech not available */
+  }
+}
+
 const TICK: Record<string, { icon: string; cls: string; sr: string }> = {
   done: { icon: "✓", cls: "bg-good text-white", sr: "done" },
   unknown: { icon: "?", cls: "bg-warn-soft text-warn", sr: "you said you don't know" },
@@ -64,6 +72,10 @@ export default function View() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [readAloud, setReadAloud] = useState(false);
+  // Read at reply time, so a reply that arrives after the seller switched it off stays silent.
+  const readAloudRef = useRef(false);
+  readAloudRef.current = readAloud;
+  useEffect(() => hush, []); // leaving the chat (e.g. to the check page) stops any speech
   const [tab, setTab] = useState<"guide" | "booking">("guide");
   const bottom = useRef<HTMLDivElement>(null);
   const textRef = useRef("");
@@ -133,7 +145,7 @@ export default function View() {
       setText("");
       setFromVoice(false);
       setVoiceNote(null);
-      if (readAloud) speak(r.session.messages[r.session.messages.length - 1].text);
+      if (readAloudRef.current) speak(r.session.messages[r.session.messages.length - 1].text);
       // Seller confirmed everything: hand over to the verification screen.
       if (r.session.flags.readbackConfirmed && !current.session.flags.readbackConfirmed) {
         setTimeout(() => router.push(`/batch/${chatBatchId(id)}/${encodeURIComponent(r.session.booking.key)}`), 1800);
@@ -276,7 +288,10 @@ export default function View() {
                   {busy ? "Checking…" : "Send"}
                 </button>
                 <label className="flex items-center gap-2 text-xs">
-                  <input type="checkbox" checked={readAloud} onChange={(ev) => setReadAloud(ev.target.checked)} /> Read replies aloud
+                  <input type="checkbox" checked={readAloud} onChange={(ev) => {
+                      setReadAloud(ev.target.checked);
+                      if (!ev.target.checked) hush();
+                    }} /> Read replies aloud
                 </label>
               </div>
             )}
