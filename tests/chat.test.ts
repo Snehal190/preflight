@@ -583,3 +583,12 @@ describe("a plain yes with nothing asked", () => {
     expect(r.reply).not.toContain("Which detail is that?");
   });
 });
+
+describe("HS code typed in the chat", () => {
+  it("never blames a spreadsheet for a missing leading zero", async () => {
+    const s = (await turn(newChatSession("x"), "mugs", [op("description", "mugs", "mugs", { op: "add_item", itemRef: "mugs" })])).session;
+    const r = await turn(s, "the HS code is 69120", [op("hsCode", "69120", "69120", { itemRef: "mugs" })]);
+    expect(r.reply).toContain("has only 5 digits");
+    expect(r.reply).not.toContain("spreadsheet");
+  });
+});

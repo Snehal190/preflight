@@ -22,29 +22,58 @@ export type AiTransport = (req: AiRequest) => Promise<string>;
 
 export type AiResult<T> = { ok: true; data: T } | { ok: false; reason: "unavailable" | "timeout" | "malformed" | "error" };
 
+/** One or more keys: GEMINI_API_KEYS (comma-separated) or GEMINI_API_KEY. */
+export function geminiKeys(): string[] {
+  return (process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || "").split(/[,\s]+/).filter(Boolean);
+}
+const model = () => process.env.GEMINI_MODEL || "gemini-flash-latest";
+
 export function aiConfigured(): boolean {
-  return Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_MODEL);
+  return geminiKeys().length > 0;
 }
 
-let client: GoogleGenAI | null = null;
+/** A key that is out of quota or rejected: move on to the next one. */
+export function isKeyProblem(e: unknown): boolean {
+  const status = (e as { status?: number })?.status;
+  const msg = e instanceof Error ? e.message : String(e);
+  return status === 429 || status === 401 || status === 403 || /RESOURCE_EXHAUSTED|quota|API key not valid|API_KEY_INVALID|PERMISSION_DENIED|UNAUTHENTICATED/i.test(msg);
+}
+
+const clients = new Map<string, GoogleGenAI>();
+/** The key that last worked; the free tier allows only ~20 requests a day per key. */
+let current = 0;
 
 const geminiTransport: AiTransport = async ({ system, parts, jsonSchema, signal }) => {
-  client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-  const res = await client.models.generateContent({
-    model: process.env.GEMINI_MODEL!,
-    contents: [{ role: "user", parts }],
-    config: {
-      systemInstruction: system,
-      temperature: 0,
-      responseMimeType: "application/json",
-      responseJsonSchema: jsonSchema,
-      abortSignal: signal,
-      httpOptions: { timeout: AI_TIMEOUT_MS },
-      // Extraction needs little reasoning; default thinking took > 20 s in testing (4.5 s at LOW).
-      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-    },
-  });
-  return res.text ?? "";
+  const keys = geminiKeys();
+  let lastError: unknown;
+  for (let tried = 0; tried < keys.length; tried++) {
+    const i = (current + tried) % keys.length;
+    const key = keys[i];
+    if (!clients.has(key)) clients.set(key, new GoogleGenAI({ apiKey: key }));
+    try {
+      const res = await clients.get(key)!.models.generateContent({
+        model: model(),
+        contents: [{ role: "user", parts }],
+        config: {
+          systemInstruction: system,
+          temperature: 0,
+          responseMimeType: "application/json",
+          responseJsonSchema: jsonSchema,
+          abortSignal: signal,
+          httpOptions: { timeout: AI_TIMEOUT_MS },
+          // Extraction needs little reasoning; default thinking took > 20 s in testing (4.5 s at LOW).
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+        },
+      });
+      current = i;
+      return res.text ?? "";
+    } catch (e) {
+      lastError = e;
+      if (!isKeyProblem(e)) throw e;
+      console.warn(`Gemini key ${i + 1} of ${keys.length} unavailable (${(e as { status?: number })?.status ?? "error"}), trying the next one`);
+    }
+  }
+  throw lastError;
 };
 
 let transportOverride: AiTransport | null = null;

@@ -57,7 +57,8 @@ export function r01(it: Item, ctx: CheckContext): CheckResult[] {
     `A spreadsheet may have dropped a leading zero. Did you mean ${guess}? If so, enter the code as text.`;
 
   if (len < 6) {
-    if (len === 5) fix.hint = leadingZeroHint(`0${digits}`);
+    // Only for codes that came from a sheet: a code typed in the chat lost no zero.
+    if (len === 5 && hs.location?.kind === "cell") fix.hint = leadingZeroHint(`0${digits}`);
     out.push(
       ruleResult("R-01", scope, {
         status: "fail",

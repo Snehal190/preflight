@@ -143,3 +143,13 @@ describe("transient API errors", () => {
     expect(t).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("several Gemini keys", () => {
+  it("moves on to the next key only for quota or key problems", async () => {
+    const { isKeyProblem } = await import("@/lib/ai/client");
+    expect(isKeyProblem(Object.assign(new Error("x"), { status: 429 }))).toBe(true);
+    expect(isKeyProblem(new Error("RESOURCE_EXHAUSTED: quota exceeded"))).toBe(true);
+    expect(isKeyProblem(new Error("API key not valid. Please pass a valid API key."))).toBe(true);
+    expect(isKeyProblem(Object.assign(new Error("Deadline expired"), { status: 504 }))).toBe(false);
+  });
+});
