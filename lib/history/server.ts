@@ -1,4 +1,5 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { z } from "zod";
 import { HistoryEntrySchema, mergeHistory, type HistoryEntry } from ".";
@@ -6,7 +7,10 @@ import { HistoryEntrySchema, mergeHistory, type HistoryEntry } from ".";
 // File-backed history for the local server (git-ignored .data/history.json). Moves to the Neon
 // database (build step 9) once DATABASE_URL is provided; the API stays the same.
 
-const FILE = path.join(process.cwd(), ".data", "history.json");
+// On Vercel the app folder is read-only, so history lives in the instance's temp folder, which is
+// cleared from time to time. `persistent` tells the page to say so.
+export const persistent = !process.env.VERCEL;
+const FILE = path.join(persistent ? path.join(process.cwd(), ".data") : tmpdir(), "history.json");
 
 export async function readHistory(): Promise<HistoryEntry[]> {
   try {

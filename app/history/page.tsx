@@ -15,12 +15,14 @@ export default function HistoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [seller, setSeller] = useState("");
   const [here, setHere] = useState<Set<string>>(new Set());
+  const [persistent, setPersistent] = useState(true);
 
   useEffect(() => {
     fetch("/api/history")
-      .then((r) => r.json() as Promise<{ entries: HistoryEntry[] }>)
+      .then((r) => r.json() as Promise<{ entries: HistoryEntry[]; persistent: boolean }>)
       .then((d) => {
         setEntries(d.entries);
+        setPersistent(d.persistent);
         // Bookings saved in this browser can be opened; others are a record only.
         setHere(new Set(d.entries.filter((e) => loadBatch(e.batchId)?.bookings.some((b) => b.key === e.key)).map((e) => e.id)));
       })
@@ -39,6 +41,11 @@ export default function HistoryPage() {
         <p className="max-w-2xl text-ink-2">Every booking checked here, from uploaded sheets or by voice and chat, newest first. Anyone using this PreFlight sees the same list.</p>
       </div>
 
+      {!persistent && (
+        <p role="status" className="rounded-xl border border-accent bg-accent-soft p-4 text-sm">
+          <b>Temporary history:</b> on this website the history is kept for a while and then cleared, until the database is connected.
+        </p>
+      )}
       {error && <p role="alert" className="font-semibold text-bad">{error}</p>}
       {entries === null && !error && <p className="text-ink-3">Loading…</p>}
 
