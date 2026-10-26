@@ -162,7 +162,8 @@ export function r07(b: Booking): CheckResult {
 
   const gross = dec(b.grossWeightKg.value!);
   const net = netWeight(b)!;
-  const passed = gross.gte(net);
+  // A 0.001 kg margin absorbs decimal rounding in unit weights (rules checklist 35).
+  const passed = gross.plus("0.001").gte(net);
   const breakdown = b.items.length
     ? b.items.map((it) => `${itemName(it)} ${fmtNum(it.unitWeightKg.value!)} kg × ${fmtNum(it.quantity.value!)} = ${fmtKg(dec(it.unitWeightKg.value!).times(it.quantity.value!))}`).join("; ")
     : "this booking has no items, so the product weight is 0 kg";

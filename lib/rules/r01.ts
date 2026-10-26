@@ -11,6 +11,9 @@ const FORMULA = "HS code must be a string of digits, at least 6 long";
 
 export function r01(it: Item, ctx: CheckContext): CheckResult[] {
   const name = itemName(it);
+  // Name the sheet row too, so the seller can find the line (rules checklist 8).
+  const row = it.hsCode.location?.kind === "cell" ? it.hsCode.location.row : null;
+  const at = row ? ` (Items row ${row})` : "";
   const desc = it.description.value ? `, ${it.description.value}` : "";
   const scope = itemScope(it);
   const hs = it.hsCode;
@@ -40,7 +43,7 @@ export function r01(it: Item, ctx: CheckContext): CheckResult[] {
     out.push(
       ruleResult("R-01", scope, {
         status: "fail",
-        found: blank ? `${name}: No HS code.` : `${name}: HS code "${hs.raw}" isn't valid, ${hs.problem ?? "it contains characters other than digits"}.`,
+        found: blank ? `${name}${at}: No HS code.` : `${name}${at}: HS code "${hs.raw}" is an invalid code, ${hs.problem ?? "it contains characters other than digits"}.`,
         shouldBe: "At least 6 digits, e.g. 691200.",
         fix,
         why: { formula: FORMULA, inputs, result: blank ? "Blank → fail" : "Not all digits → fail" },
@@ -51,14 +54,14 @@ export function r01(it: Item, ctx: CheckContext): CheckResult[] {
 
   const len = digits.length;
   const leadingZeroHint = (guess: string) =>
-    `Excel may have dropped a leading zero, did you mean ${guess}? If so, enter the code as text.`;
+    `A spreadsheet may have dropped a leading zero. Did you mean ${guess}? If so, enter the code as text.`;
 
   if (len < 6) {
-    if (it.hsWasNumeric && len === 5) fix.hint = leadingZeroHint(`0${digits}`);
+    if (len === 5) fix.hint = leadingZeroHint(`0${digits}`);
     out.push(
       ruleResult("R-01", scope, {
         status: "fail",
-        found: `${name}: HS code ${digits} has only ${len} digit${len === 1 ? "" : "s"}.`,
+        found: `${name}${at}: HS code ${digits} has only ${len} digit${len === 1 ? "" : "s"}.`,
         shouldBe: "At least 6 digits.",
         fix,
         why: { formula: FORMULA, inputs, result: `${len} digits < 6 → fail` },
@@ -83,6 +86,7 @@ export function r01(it: Item, ctx: CheckContext): CheckResult[] {
       infoResult(`hs-leading-zero:${it.itemId}`, scope, {
         found: `${name}: HS code ${digits} has ${len} digits and was typed as a number.`,
         shouldBe: "HS codes have an even number of digits (6, 8 or 10).",
+        whyItMatters: "A code missing its first zero points customs at a different product.",
         fix: { text: leadingZeroHint(`0${digits}`) },
         why: { formula: "Numeric cell with an odd digit count", inputs, result: "Possible lost leading zero" },
       }),
@@ -93,6 +97,7 @@ export function r01(it: Item, ctx: CheckContext): CheckResult[] {
       infoResult(`hs-long:${it.itemId}`, scope, {
         found: `${name}: HS code ${digits} has ${len} digits.`,
         shouldBe: "HS codes are normally 6–10 digits.",
+        whyItMatters: "A code that's too long may be two codes run together, and customs may reject it.",
         fix: { text: "Check the code against your tariff classification." },
         why: { formula: "6 ≤ digits ≤ 10", inputs, result: `${len} digits` },
       }),
@@ -103,6 +108,7 @@ export function r01(it: Item, ctx: CheckContext): CheckResult[] {
       infoResult(`hs-zero:${it.itemId}`, scope, {
         found: `${name}: HS code ${digits}.`,
         shouldBe: "This isn't a real HS code.",
+        whyItMatters: "Customs will reject a placeholder code and hold the shipment.",
         fix: { text: `Enter the real HS code for ${name}${desc}.` },
         why: { formula: "All zeros", inputs, result: "Not a real code" },
       }),
@@ -114,6 +120,7 @@ export function r01(it: Item, ctx: CheckContext): CheckResult[] {
       infoResult(`hs-advice:${it.itemId}`, scope, {
         found: `AI advice: HS code ${digits} doesn't appear to match "${it.description.value}", please check.`,
         shouldBe: advice.reason,
+        whyItMatters: "The wrong code can mean the wrong duty, or customs holding the goods.",
         fix: { text: "Check the code against your tariff classification. This is AI advice, not a rule." },
         why: { formula: "AI advisory (Gemini)", inputs: [...inputs, input("Description", it.description)], result: "Possible mismatch" },
       }),

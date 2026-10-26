@@ -3,14 +3,15 @@ import { aiConfigured, classifyItems } from "../ai";
 import { cachedFetcher } from "../dates/cache";
 import { londonToday } from "../dates/today";
 import { evaluateBooking } from "./evaluate";
-import type { BookingState, Evaluation } from "./state";
+import { dropStaleAdvice, type BookingState, type Evaluation } from "./state";
 
 // Server-side glue for API routes: AI advice, holidays and "today" (Europe/London).
 
 const holidays = cachedFetcher();
 
 /** Ask the AI about any item it hasn't seen yet (cached by description). Never throws. */
-export async function refreshAiAdvice(bookings: Booking[], states: BookingState[]): Promise<BookingState[]> {
+export async function refreshAiAdvice(bookings: Booking[], statesIn: BookingState[]): Promise<BookingState[]> {
+  const states = statesIn.map((s, i) => dropStaleAdvice(bookings[i], s));
   if (!aiConfigured()) return states.map((s) => ({ ...s, ai: { available: false, byItemId: s.ai?.byItemId ?? {} } }));
   const items = bookings.flatMap((b, i) =>
     b.items
@@ -23,7 +24,8 @@ export async function refreshAiAdvice(bookings: Booking[], states: BookingState[
     const byItemId = { ...(s.ai?.byItemId ?? {}) };
     for (const [k, v] of Object.entries(res.byId)) {
       const [bi, itemId] = [Number(k.slice(0, k.indexOf("|"))), k.slice(k.indexOf("|") + 1)];
-      if (bi === i) byItemId[itemId] = v;
+      const it = bookings[i].items.find((x) => x.itemId === itemId);
+      if (bi === i) byItemId[itemId] = { ...v, about: { description: it?.description.value ?? null, hsCode: it?.hsCode.value ?? null } };
     }
     const missing = bookings[i].items.some((it) => it.description.value && !byItemId[it.itemId]);
     return { ...s, ai: { available: res.available && !missing, byItemId } };

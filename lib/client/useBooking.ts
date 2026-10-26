@@ -2,13 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { Booking } from "../types";
-import type { BookingState, Evaluation } from "../booking/state";
+import type { BookingState } from "../booking/state";
 import type { Patch } from "../rules/types";
 import type { CarrierId } from "../reference/carriers";
 import { applyPatches } from "../repair";
 import { editBookingField, editItemField } from "../booking/edit";
-import { changeChips } from "../booking/changes";
-import { loadBatch, postJson, updateBooking, type StoredBatch, type StoredBooking } from "./store";
+import { loadBatch, saveChange, type StoredBatch, type StoredBooking } from "./store";
 
 // All of a booking's actions. Each one re-runs every check on the server, then saves a new
 // version with change chips (spec §12.8). Business logic stays in lib/.
@@ -33,16 +32,7 @@ export function useBooking(batchId: string, key: string) {
       setBusy(true);
       setError(null);
       try {
-        const res = await postJson<{ state: BookingState; evaluation: Evaluation }>("/api/evaluate", { booking, state });
-        const chips = changeChips(entry.booking, entry.evaluation, booking, res.evaluation);
-        const next = updateBooking(batchId, key, (b) => ({
-          ...b,
-          booking,
-          state: res.state,
-          evaluation: res.evaluation,
-          versions: [...b.versions, { n: b.versions.length + 1, at: new Date().toISOString(), booking, state: res.state, chips, cause }],
-        }));
-        if (!next) throw new Error("Couldn't save in this browser (storage full or blocked).");
+        const { batch: next, chips } = await saveChange(batchId, entry, booking, state, cause);
         setBatch(next);
         setLastChips(chips);
       } catch (e) {
@@ -92,6 +82,33 @@ export function useBooking(batchId: string, key: string) {
       entry && commit(entry.booking, { ...entry.state, hsSuggestions: { ...entry.state.hsSuggestions, [itemId]: { code, reason } } }, "Got an AI HS-code suggestion"),
     chooseCarrier: (id: CarrierId | null) =>
       entry && commit(entry.booking, { ...entry.state, chosenCarrierId: id }, id ? `Chose Carrier ${id}` : "Went back to the recommended carrier"),
+    /**
+     * Applies every tested number fix, one at a time, re-checking after each (a fix can clear other
+     * problems). HS codes and dangerous goods never have tested fixes: they always need a person.
+     */
+    applyAllFixes: async (): Promise<string[]> => {
+      const applied: string[] = [];
+      setBusy(true);
+      setError(null);
+      try {
+        for (let i = 0; i < 10; i++) {
+          const cur = loadBatch(batchId)?.bookings.find((b) => b.key === key);
+          const f = cur?.evaluation.results.find((r) => r.fix.tested?.length)?.fix.tested?.[0];
+          if (!cur || !f) break;
+          const { batch: next, chips } = await saveChange(batchId, cur, applyPatches(cur.booking, f.patches), cur.state, `Applied fix: ${f.summary}`);
+          setBatch(next);
+          setLastChips(chips);
+          applied.push(f.summary);
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Something went wrong.");
+      } finally {
+        setBusy(false);
+      }
+      return applied;
+    },
+    /** A change made by speaking or typing (the chat engine already applied it). */
+    replace: (booking: Booking, state: BookingState, cause: string) => commit(booking, state, cause),
     undoTo: (n: number) => {
       const v = entry?.versions.find((x) => x.n === n);
       if (v) return commit(v.booking, v.state, `Undo to version ${n}`);

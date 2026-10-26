@@ -11,6 +11,8 @@ import { FieldsPanel } from "@/app/components/FieldsPanel";
 import { Chips } from "@/app/components/Chips";
 import { VerifyStage } from "@/app/components/VerifyStage";
 import { CarrierPanel } from "@/app/components/CarrierPanel";
+import { ChangeBox, type ChangeMessage } from "@/app/components/ChangeBox";
+import type { ChatSession } from "@/lib/chat/session";
 
 const STEPS = ["Verify", "Fix", "Carrier", "Take-off"] as const;
 
@@ -25,6 +27,7 @@ export default function View() {
   const [verified, setVerified] = useState(false);
   const [runKey, setRunKey] = useState(() => `${Date.now()}`);
   const [departing, setDeparting] = useState(false);
+  const [talk, setTalk] = useState<{ session: ChatSession | null; messages: ChangeMessage[]; busy: boolean }>({ session: null, messages: [], busy: false });
   if (!bk.loaded) return null;
   if (!bk.entry) return <p>Booking not found in this browser. <Link className="underline" href="/upload">Upload again</Link>.</p>;
   const { booking, evaluation: e, state, versions, label } = bk.entry;
@@ -32,6 +35,7 @@ export default function View() {
   const ready = e.status === "ready";
   const issues = e.results.filter((r) => r.status !== "pass" && r.status !== "not_applicable");
   const passed = e.results.filter((r) => r.status === "pass" || r.status === "not_applicable");
+  const testedCount = issues.filter((r) => r.fix.tested?.length).length;
   const ackFor = (id: string) => state.acknowledged.find((a) => a.id === id);
   const step = departing ? 3 : !verified ? 0 : ready ? 2 : 1;
   const multi = (bk.batch?.bookings.length ?? 0) > 1;
@@ -44,6 +48,20 @@ export default function View() {
       else alert(res.unavailable ? "The AI assistant is unavailable right now." : "The AI couldn't suggest a code for this description.");
     } catch {
       alert("The AI assistant is unavailable right now.");
+    }
+  }
+
+  async function sendChange(text: string, transcript: boolean) {
+    if (!bk.entry) return;
+    const { booking: current, state: currentState } = bk.entry;
+    setTalk((t) => ({ ...t, busy: true, messages: [...t.messages, { role: "user", text }] }));
+    try {
+      const res = await postJson<{ session: ChatSession; reply: string }>("/api/booking-chat", { booking: current, state: currentState, session: talk.session, text, transcript });
+      const changed = JSON.stringify(res.session.booking) !== JSON.stringify(current) || JSON.stringify(res.session.state) !== JSON.stringify(currentState);
+      if (changed) await bk.replace(res.session.booking, res.session.state, `${transcript ? "Said" : "Typed"}: "${text.length > 60 ? `${text.slice(0, 57)}…` : text}"`);
+      setTalk((t) => ({ session: res.session, busy: false, messages: [...t.messages, { role: "assistant", text: res.reply }] }));
+    } catch (err) {
+      setTalk((t) => ({ ...t, busy: false, messages: [...t.messages, { role: "assistant", text: err instanceof Error ? err.message : "Something went wrong. Please try again." }] }));
     }
   }
 
@@ -113,6 +131,20 @@ export default function View() {
         {bk.error && <p role="alert" className="font-semibold text-bad">{bk.error}</p>}
       </section>
 
+      {/* Speak or type any change, at any point after the checks */}
+      {verified && !departing && (
+        <section>
+          <ChangeBox
+            title="Tell us what's different"
+            hint="Speak or type any change, for example a corrected quantity, a new HS code, or that you've booked the delivery slot. We change only what you say and re-check everything."
+            placeholder="e.g. The quantity of PB-20K is 200, not 240. We've booked the delivery slot."
+            messages={talk.messages}
+            busy={talk.busy || bk.busy}
+            onSend={sendChange}
+          />
+        </section>
+      )}
+
       {/* 2 · Fix */}
       {verified && issues.length > 0 && (
         <section className="space-y-4">
@@ -121,6 +153,14 @@ export default function View() {
             <h2 className="text-[28px] sm:text-[34px]">What to fix</h2>
             <p className="text-ink-2">Apply a tested fix, answer the questions, edit a value, or accept a risk. Everything re-checks straight away.</p>
           </div>
+          {testedCount > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-paper p-4">
+              <button type="button" className="btn" disabled={bk.busy} onClick={() => void bk.applyAllFixes()}>
+                Apply all tested fixes ({testedCount})
+              </button>
+              <span className="text-sm text-ink-2">Only number fixes we&apos;ve tested. HS codes and dangerous goods always need you to decide.</span>
+            </div>
+          )}
           <div className="grid gap-4 lg:grid-cols-2">
             {issues.map((r) => {
               const item = r.scope.kind === "item" ? booking.items.find((it) => r.scope.kind === "item" && it.itemId === r.scope.itemId) : undefined;

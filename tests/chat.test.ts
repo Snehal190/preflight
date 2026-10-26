@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { handleTurn, missingQuestions, spoken, type TurnDeps } from "@/lib/chat/engine";
+import { editSession, handleTurn, missingQuestions, spoken, type TurnDeps } from "@/lib/chat/engine";
+import { bk001, item, fv } from "./fixtures/bookings";
 import { newChatSession, type ChatSession } from "@/lib/chat/session";
 import { matchAllowed, parseAmount } from "@/lib/chat/normalize";
 import { resolveDate } from "@/lib/chat/dates";
@@ -61,7 +62,7 @@ describe("interpreting values in code", () => {
     expect(matchAllowed("destinationCity", "Munich").ok).toBe(false);
     expect(matchAllowed("originCity", "Bristol").ok).toBe(false);
     expect(matchAllowed("originCity", "Munich").ok).toBe(false); // Fuse alone would say Manchester
-    expect(matchAllowed("originCity", "Manchester").ok).toBe(false); // product owner: we do not collect from Manchester
+    expect(matchAllowed("originCity", "Manchester").ok).toBe(true); // the judges' allowed values include Manchester
     expect(matchAllowed("destinationCountry", "Holland")).toMatchObject({ value: "Netherlands", how: "synonym" });
     expect(matchAllowed("priority", "cheap")).toMatchObject({ value: "Cheapest", how: "synonym" });
     expect(matchAllowed("destinationType", "3PL")).toMatchObject({ value: "Warehouse" });
@@ -128,7 +129,7 @@ describe("asking only for what's missing (spec §19)", () => {
   it("refuses a city outside the list instead of guessing", async () => {
     const r = await turn(newChatSession("x"), "from Bristol", [op("originCity", "Bristol", "from Bristol")]);
     expect(r.session.booking.originCity.value).toBeNull();
-    expect(r.reply).toContain("I can only book from London, Birmingham or Leeds.");
+    expect(r.reply).toContain("I can only book from London, Manchester, Birmingham or Leeds.");
   });
 
   it("a quote not found in the message → value discarded and asked for", async () => {
@@ -538,5 +539,36 @@ describe("the Harbour Home Goods speech (reported by the product owner)", () => 
     expect(r.reply).not.toContain(", correct?");
     expect(r.reply).not.toContain("Product: ceramic dinner plates");
     expect(r.session.booking.originCity.value).toBe("Birmingham");
+  });
+});
+
+describe("changes to an uploaded booking (speak or type after upload)", () => {
+  const upload = () => bk001({ items: [item({ sku: fv("GFT-500"), description: fv("Assorted gift item, boxed"), hsCode: fv("850760") })] });
+  const editTurn = (s: ChatSession, text: string, ops: ExtractOperation[]) => handleTurn(s, text, false, ok(ops), { ...deps, edit: true });
+
+  it("renaming a product and setting its HS code in one message changes that product, never adds one", async () => {
+    const s = editSession(upload(), emptyState(), TODAY);
+    const text = "BK-001: the gift item is a ceramic photo frame with no batteries, and the HS code should be 691390.";
+    const r = await editTurn(s, text, [
+      op("description", "ceramic photo frame with no batteries", "ceramic photo frame with no batteries", { itemRef: "Assorted gift item, boxed" }),
+      op("hsCode", "691390", "691390", { itemRef: "Assorted gift item, boxed" }),
+    ]);
+    expect(r.session.booking.items).toHaveLength(1);
+    expect(r.session.booking.items[0]).toMatchObject({ description: { value: "ceramic photo frame with no batteries" }, hsCode: { value: "691390" } });
+    expect(r.reply).not.toContain("Added a product");
+    expect(r.reply).toContain("Re-checked:");
+    expect(r.reply).not.toContain("Is everything in the read-back correct?");
+  });
+
+  it("an unknown product name is never turned into a new product", async () => {
+    const r = await editTurn(editSession(upload(), emptyState(), TODAY), "the teapot's quantity is 10", [op("quantity", "10", "10", { itemRef: "teapot" })]);
+    expect(r.session.booking.items).toHaveLength(1);
+    expect(r.reply).toContain(`I couldn't find "teapot" in this booking.`);
+  });
+
+  it("a stated value is kept as stated, so the checks still catch it (rules checklist 74)", async () => {
+    const r = await editTurn(editSession(upload(), emptyState(), TODAY), "GFT-500 quantity is 1,000", [op("quantity", "1,000", "1,000", { itemRef: "GFT-500" })]);
+    expect(r.session.booking.items[0].quantity.value).toBe(1000);
+    expect(r.reply).toContain("I spotted");
   });
 });

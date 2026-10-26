@@ -74,13 +74,13 @@ describe("R-01 HS code", () => {
   it("5 digits from a numeric cell → Red with the leading-zero hint", () => {
     const r = rule(runChecks(withHs(fv("90111"), true), ctx).results, "R-01");
     expect(r.status).toBe("fail");
-    expect(r.fix.hint).toContain("did you mean 090111?");
+    expect(r.fix.hint).toContain("Did you mean 090111?");
   });
 
-  it("5 digits typed as text → Red without the hint", () => {
+  it("5 digits typed as text (every CSV value) → Red, still with the leading-zero hint (rules checklist 5)", () => {
     const r = rule(runChecks(withHs(fv("90111"), false), ctx).results, "R-01");
     expect(r.status).toBe("fail");
-    expect(r.fix.hint).toBeUndefined();
+    expect(r.fix.hint).toContain("Did you mean 090111?");
   });
 
   it("6 digits pass", () => {
@@ -315,8 +315,11 @@ describe("R-08 warehouse appointment", () => {
     expect(report.headline).toBe("1 to check");
     expect(runChecks(b, { ...ctx, acknowledged: ["R-08:booking"] }).status).toBe("ready");
   });
-  it("warehouse + blank → missing data", () => {
-    expect(statusOf(bk001({ appointmentBooked: fv<"Yes" | "No">(null, null) }), "R-08")).toBe("missing_data");
+  it("warehouse + blank → Amber, shown as missing (rules checklist 39)", () => {
+    const r = rule(runChecks(bk001({ appointmentBooked: fv<"Yes" | "No">(null, null) }), ctx).results, "R-08");
+    expect(r.status).toBe("fail");
+    expect(r.severity).toBe("amber");
+    expect(r.found).toContain("(missing)");
   });
 });
 
@@ -403,7 +406,7 @@ describe("R-06 wording", () => {
   it("cites the most specific trigger word", () => {
     const b = bk001({ items: [item({ description: fv("Portable power bank 10000mAh") })] });
     expect(runChecks(b, ctx).results.find((r) => r.ruleId === "R-06")!.found).toBe(
-      'MUG-01: "Portable power bank 10000mAh" contains "power bank", which means a lithium battery.',
+      'MUG-01 "Portable power bank 10000mAh" contains a lithium battery (the description says "power bank"). Road carriers can\'t take lithium batteries, aerosols or flammable liquids on a normal pallet.',
     );
   });
 });

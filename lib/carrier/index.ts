@@ -357,7 +357,23 @@ export function analyseCarriers(input: CarrierInput): CarrierAnalysis {
   const preferredRanked = rankCarriers(rows, priority);
   base.preferred = preferredRanked[0].carrier.id;
 
-  if (!knowEligibility || eligibleRows.length === 0) return base;
+  // Every booking gets a recommendation (rules checklist 68), even before it can be confirmed.
+  if (!knowEligibility) {
+    base.recommended = preferredRanked[0].carrier.id;
+    base.ranking = preferredRanked.map((r) => r.carrier.id);
+    base.reason = `Once we know the pallets and weight, ${preferredRanked[0].carrier.name} looks best for "${priority}" on this route. We'll confirm it can take the load.`;
+    return base;
+  }
+  if (eligibleRows.length === 0) {
+    if (!evalWeight) return base;
+    // No carrier fits as packed: rank them as if repacked onto the pallets each one would need.
+    const repacked = rows.map((r) => ({ ...r, totalCost: r.pricePerPallet && r.minPallets ? r.pricePerPallet.times(r.minPallets) : null, eligible: true }));
+    const best = rankCarriers(repacked, priority)[0];
+    base.recommended = best.carrier.id;
+    base.ranking = rankCarriers(repacked, priority).map((r) => r.carrier.id);
+    base.reason = `Once repacked onto ${best.minPallets} pallets (${fmtKg1(evalWeight.div(best.minPallets!))} each), use ${best.carrier.name}: ${best.minPallets} × ${fmtGBP(best.pricePerPallet!)} = ${fmtGBP(best.totalCost!)}, the best "${priority}" option.`;
+    return base;
+  }
 
   const ranked = rankCarriers(eligibleRows, priority);
   const winner = ranked[0];

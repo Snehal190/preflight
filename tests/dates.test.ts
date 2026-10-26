@@ -53,9 +53,9 @@ describe("delivery dates (ASSUMPTION A2: working days)", () => {
     expect((await dates({ ready: "2027-03-05", transit: 3, city: "Frankfurt" })).delivery).toBe("2027-03-10");
   });
 
-  it("a past ready date: collection today if it's a working day (approved Q18)", async () => {
+  it("a past ready date: collection on the next working day from today (rules checklist 87, replaces Q18)", async () => {
     const tue = await dates({ ready: "2026-10-20", today: "2026-10-27", transit: 3 });
-    expect(tue.collection).toBe("2026-10-27");
+    expect(tue.collection).toBe("2026-10-28");
     expect(tue.notes[0]).toContain("has passed");
     const sun = await dates({ ready: "2026-10-20", today: "2026-10-25", transit: 3 });
     expect(sun.collection).toBe("2026-10-26");

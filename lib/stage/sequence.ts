@@ -32,13 +32,15 @@ export function stepState(r: CheckResult): StepState {
     case "needs_answer":
       return "question";
     case "fail":
-      return r.severity === "red" ? "fail" : "amber";
+      // A non-blocking Red (the carrier your priority points to can't take the weight, but another
+      // can) is shown as "please check", never as a green OK (rules checklist 23).
+      return r.severity === "red" && !r.nonBlocking ? "fail" : "amber";
   }
 }
 
 export function checkSequence(results: CheckResult[]): StageStep[] {
   return RULE_IDS.map((ruleId) => {
-    const rs = results.filter((r) => r.ruleId === ruleId && !r.nonBlocking);
+    const rs = results.filter((r) => r.ruleId === ruleId);
     const worst = [...rs].sort((a, b) => RANK[stepState(a)] - RANK[stepState(b)])[0];
     const state: StepState = worst ? stepState(worst) : "na";
     const bad = rs.filter((r) => r.status !== "pass" && r.status !== "not_applicable");

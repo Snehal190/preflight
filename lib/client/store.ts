@@ -3,6 +3,7 @@
 import type { Booking } from "../types";
 import type { BookingState, Evaluation } from "../booking/state";
 import type { ParseWarning } from "../parse";
+import { changeChips } from "../booking/changes";
 
 // Browser-side store for local testing, until the Neon database (step 9) holds bookings and
 // version history. Every read/write is guarded: storage can be unavailable or full.
@@ -67,4 +68,28 @@ export async function postJson<T>(url: string, body: unknown): Promise<T> {
   const data = (await res.json().catch(() => ({ error: "The server had a problem. Please try again." }))) as T & { error?: string };
   if (!res.ok) throw new Error(data.error ?? "Request failed.");
   return data;
+}
+
+/**
+ * Re-runs every check on the server for a changed booking, then saves it as a new version with
+ * change chips (spec §12.8). Used by the booking page and the upload results page.
+ */
+export async function saveChange(
+  batchId: string,
+  entry: StoredBooking,
+  booking: Booking,
+  state: BookingState,
+  cause: string,
+): Promise<{ batch: StoredBatch; chips: string[]; evaluation: Evaluation }> {
+  const res = await postJson<{ state: BookingState; evaluation: Evaluation }>("/api/evaluate", { booking, state });
+  const chips = changeChips(entry.booking, entry.evaluation, booking, res.evaluation);
+  const batch = updateBooking(batchId, entry.key, (b) => ({
+    ...b,
+    booking,
+    state: res.state,
+    evaluation: res.evaluation,
+    versions: [...b.versions, { n: b.versions.length + 1, at: new Date().toISOString(), booking, state: res.state, chips, cause }],
+  }));
+  if (!batch) throw new Error("Couldn't save in this browser (storage full or blocked).");
+  return { batch, chips, evaluation: res.evaluation };
 }

@@ -12,14 +12,14 @@ export const DG_CATEGORY_LABEL: Record<DgCategory, string> = {
   flammable_liquid: "a flammable liquid",
 };
 
-/** red = a match is a Red failure. ask = a match needs the seller's answer (approved Q8). */
+/** red = a match is a Red failure. ask = a match needs the seller's answer. */
 export type DgTier = "red" | "ask";
 
 interface TermDef {
   term: string;
   category: DgCategory;
   tier: DgTier;
-  /** Accessory words ("case", "glass", …) turn a hit on this term into a question instead of Red. */
+  /** Accessory words ("case", "sleeve", "glass", …) cancel a hit on this term: a phone case isn't a phone. */
   accessoryDowngrade?: boolean;
 }
 
@@ -27,6 +27,9 @@ const red = (category: DgCategory, terms: string[], accessoryDowngrade = false):
   terms.map((term) => ({ term, category, tier: "red", accessoryDowngrade }));
 const ask = (category: DgCategory, terms: string[]): TermDef[] =>
   terms.map((term) => ({ term, category, tier: "ask", accessoryDowngrade: true }));
+
+// Product owner's rules checklist (docs/RULES-CHECKLIST.md items 27-31): devices that run on a
+// lithium battery, spirits and rechargeable items are Red; their accessories are not dangerous.
 
 export const DG_TERMS: readonly TermDef[] = [
   ...red("lithium", [
@@ -38,25 +41,34 @@ export const DG_TERMS: readonly TermDef[] = [
     "mah",
     "power bank",
     "powerbank",
-    "rechargeable battery",
+    "rechargeable",
     "battery pack",
     "vape",
     "e-cigarette",
+    "e-cig",
   ]),
-  ...ask("lithium", [
-    "phone",
-    "smartphone",
-    "laptop",
-    "tablet",
-    "smartwatch",
-    "earbuds",
-    "wireless headphones",
-    "drone",
-    "action camera",
-    "e-bike",
-    "e-scooter",
-    "hoverboard",
-  ]),
+  ...red(
+    "lithium",
+    [
+      "phone",
+      "smartphone",
+      "mobile phone",
+      "laptop",
+      "tablet",
+      "smartwatch",
+      "fitness tracker",
+      "earbuds",
+      "wireless headphones",
+      "drone",
+      "camera",
+      "e-bike",
+      "ebike",
+      "e-scooter",
+      "electric scooter",
+      "hoverboard",
+    ],
+    true,
+  ),
   ...red("aerosol", [
     "aerosol",
     "spray can",
@@ -70,7 +82,9 @@ export const DG_TERMS: readonly TermDef[] = [
     "air duster",
     "insect spray",
     "whipped cream charger",
+    "whipped cream canister",
     "cream charger",
+    "cream canister",
   ]),
   ...red("flammable_liquid", [
     "perfume",
@@ -102,8 +116,8 @@ export const DG_TERMS: readonly TermDef[] = [
     "lacquer",
     "reed diffuser",
   ]),
-  ...red("flammable_liquid", ["vodka", "whisky", "whiskey", "liqueur"], true),
-  ...ask("flammable_liquid", ["gin", "rum", "spirits"]),
+  ...red("flammable_liquid", ["vodka", "whisky", "whiskey", "liqueur", "gin", "rum", "brandy", "tequila", "spirits"], true),
+  ...ask("flammable_liquid", ["essential oil"]),
 ];
 
 /** Negations cancel a match in their category (spec §6 R-06). */
@@ -114,23 +128,40 @@ export const DG_NEGATIONS: Record<DgCategory, readonly string[]> = {
     "no batteries",
     "batteries not included",
     "without battery",
-    "non-rechargeable alkaline",
+    "without batteries",
+    "alkaline",
+    "nimh",
+    "ni-mh",
+    "no electronics",
   ],
   aerosol: ["non-aerosol", "pump spray", "trigger spray"],
   flammable_liquid: ["alcohol-free", "water-based"],
 };
 
-/** Accessory words: present → device/drink hits become a question (see ASSUMPTIONS.md, pending note). */
+/** Negations that cancel only one term ("non-rechargeable lithium cell" is still lithium). */
+export const DG_TERM_NEGATIONS: Record<string, readonly string[]> = {
+  rechargeable: ["non-rechargeable", "not rechargeable"],
+  tablet: ["vitamin", "vitamins", "pill", "pills", "supplement", "supplements", "dishwasher", "effervescent", "chewable", "mg", "medicine", "tablet case", "tablet stand"],
+};
+
+/** Accessory words: present → a device/drink hit is cancelled ("Silicone phone case", "gin glass"). */
 export const DG_ACCESSORY_WORDS: readonly string[] = [
   "case",
   "cover",
   "sleeve",
+  "bag",
   "stand",
   "holder",
+  "mount",
   "strap",
+  "band",
   "screen protector",
+  "tripod",
+  "lens cap",
   "glass",
+  "glasses",
   "mug",
+  "tumbler",
 ];
 
 /** "Empty" turns any aerosol / flammable-liquid hit into a question ("Perfume bottle, empty"). */
@@ -162,6 +193,14 @@ export function containsPhrase(normalisedText: string, phrase: string): boolean 
   return phraseRegex(phrase).test(normalisedText);
 }
 
+/** "phone case", "laptop carry bag", "gin glass": the accessory word follows the device or drink,
+ *  at most one word apart. "Earbuds with charging case" is not an accessory: the earbuds are the item. */
+function isAccessoryOf(norm: string, term: string, accessory: string): boolean {
+  const t = escapeRegex(normaliseForMatch(term));
+  const a = escapeRegex(normaliseForMatch(accessory));
+  return new RegExp(`(?:^| )${t}(?:s|es)? (?!with |and |plus |charging )(?:[a-z0-9]+ )?${a}(?:s|es)?(?= |$)`).test(norm);
+}
+
 const MAH_PATTERN = /(?:^| )\d+ ?mah(?= |$)/;
 
 export interface KeywordHit {
@@ -171,13 +210,15 @@ export interface KeywordHit {
   tier: DgTier;
   /** Set when a negation phrase cancels this hit. */
   negatedBy?: string;
-  /** Set when an accessory / "empty" word turns this hit into a question. */
+  /** Set when an accessory word cancels this hit ("phone" in "phone case"). */
+  accessoryOf?: string;
+  /** Set when "empty" turns this hit into a question. */
   downgradedBy?: string;
 }
 
-/** Effective tier of a hit after negations and downgrades; null = cancelled. */
+/** Effective tier of a hit after negations, accessories and "empty"; null = cancelled. */
 export function effectiveTier(hit: KeywordHit): DgTier | null {
-  if (hit.negatedBy) return null;
+  if (hit.negatedBy || hit.accessoryOf) return null;
   if (hit.downgradedBy) return "ask";
   return hit.tier;
 }
@@ -191,13 +232,13 @@ export function scanKeywords(text: string): KeywordHit[] {
     const matched = def.term === "mah" ? MAH_PATTERN.test(norm) || containsPhrase(norm, "mah") : containsPhrase(norm, def.term);
     if (!matched) continue;
     const hit: KeywordHit = { category: def.category, term: def.term, tier: def.tier };
-    const negation = DG_NEGATIONS[def.category].find((n) => containsPhrase(norm, n));
+    const negation = [...DG_NEGATIONS[def.category], ...(DG_TERM_NEGATIONS[def.term] ?? [])].find((n) => containsPhrase(norm, n));
     if (negation) hit.negatedBy = negation;
     if (def.accessoryDowngrade) {
-      const acc = DG_ACCESSORY_WORDS.find((w) => containsPhrase(norm, w));
-      if (acc) hit.downgradedBy = acc;
+      const acc = DG_ACCESSORY_WORDS.find((w) => isAccessoryOf(norm, def.term, w));
+      if (acc) hit.accessoryOf = acc;
     }
-    if (!hit.downgradedBy && def.category !== "lithium" && containsPhrase(norm, DG_EMPTY_WORD)) {
+    if (!hit.accessoryOf && def.category !== "lithium" && containsPhrase(norm, DG_EMPTY_WORD)) {
       hit.downgradedBy = DG_EMPTY_WORD;
     }
     hits.push(hit);
@@ -205,15 +246,16 @@ export function scanKeywords(text: string): KeywordHit[] {
   return hits;
 }
 
-/** Layer 3: HS code prefixes that hint at dangerous goods. */
+/** Layer 3: HS code prefixes that hint at dangerous goods (checklist item 31). Only 8507.60 and
+ *  8506.50 are lithium: other batteries (alkaline 8506.10, lead-acid 8507.10) are not. */
 export const DG_HS_HINTS: readonly { prefix: string; category: DgCategory; label: string }[] = [
-  { prefix: "8507", category: "lithium", label: "accumulators, including lithium-ion" },
-  { prefix: "8506", category: "lithium", label: "primary batteries" },
-  { prefix: "3303", category: "flammable_liquid", label: "perfumes" },
-  { prefix: "3307", category: "aerosol", label: "deodorants, sprays" },
-  { prefix: "3208", category: "flammable_liquid", label: "solvent-based paints/varnishes" },
+  { prefix: "850760", category: "lithium", label: "lithium-ion batteries" },
+  { prefix: "850650", category: "lithium", label: "lithium batteries" },
+  { prefix: "3303", category: "flammable_liquid", label: "perfumes and toilet waters" },
+  { prefix: "3307", category: "aerosol", label: "deodorants and other sprays" },
+  { prefix: "3208", category: "flammable_liquid", label: "solvent-based paints and varnishes" },
   { prefix: "2208", category: "flammable_liquid", label: "spirits" },
-  { prefix: "3606", category: "flammable_liquid", label: "lighter fuel, ferro-cerium" },
+  { prefix: "3606", category: "flammable_liquid", label: "lighter fuel" },
 ];
 
 export function hsHint(hsDigits: string | null): (typeof DG_HS_HINTS)[number] | null {

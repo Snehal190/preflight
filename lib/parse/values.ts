@@ -63,6 +63,17 @@ export function parseDecimal(c: Cell | undefined, rule: DecimalRule): Parsed<str
   return { value: n.toFixed(), raw };
 }
 
+/**
+ * Digits of an HS code written as text. Spaces, dots and dashes are separators ("6912.00" → 691200),
+ * but a trailing ".0" left by a spreadsheet ("691200.0") is dropped when the code already has 6+ digits.
+ */
+export function hsDigits(text: string): string {
+  const t = text.trim();
+  const m = t.match(/^(.*\d)\.0+$/);
+  const base = m && m[1].replace(/[\s.\-]/g, "").length >= 6 ? m[1] : t;
+  return base.replace(/[\s.\-]/g, "");
+}
+
 /** HS code: digits only, leading zeros kept. Invalid → value null + problem (R-01 fails it). */
 export function parseHsCode(c: Cell | undefined): Parsed<string> & { wasNumeric: boolean } {
   const early = unreadableOrNull<string>(c);
@@ -73,7 +84,7 @@ export function parseHsCode(c: Cell | undefined): Parsed<string> & { wasNumeric:
     return { value: new Decimal(c!.value).toFixed(0), raw, wasNumeric: true };
   }
   if (c!.kind === "text") {
-    const stripped = c!.value.replace(/[\s.\-]/g, "");
+    const stripped = hsDigits(c!.value);
     if (stripped === "") return { value: null, raw: null, wasNumeric: false };
     if (!/^\d+$/.test(stripped)) return { value: null, raw, problem: "it contains characters other than digits", wasNumeric: false };
     return { value: stripped, raw, wasNumeric: false };

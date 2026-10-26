@@ -21,9 +21,23 @@ export function r08(b: Booking, estimatedDelivery: string | null): CheckResult {
     });
   }
   const appt = b.appointmentBooked.value;
-  if (appt === null) return missingResult("R-08", BOOKING_SCOPE, [missingText("Delivery appointment booked", b.appointmentBooked)], inputs, R08_FORMULA);
-  const passed = appt === "Yes";
   const when = estimatedDelivery ? fmtDateLong(estimatedDelivery) : "your estimated delivery date";
+  // Blank for a warehouse: Amber, shown as missing (rules checklist 39). It needs checking, not blocking.
+  if (appt === null) {
+    return ruleResult("R-08", BOOKING_SCOPE, {
+      status: "fail",
+      found: b.appointmentBooked.raw?.trim()
+        ? `Warehouse delivery, but "${b.appointmentBooked.raw.trim()}" isn't a clear Yes or No for "Delivery appointment booked" (missing).`
+        : `Warehouse delivery, but "Delivery appointment booked" is blank (missing).`,
+      shouldBe: "Appointment booked = Yes for warehouse deliveries.",
+      fix: {
+        text: `Tell us whether a delivery slot is booked. If not, book one with the receiving warehouse for around ${when}.`,
+        noApplyReason: "Only you can book the slot with the warehouse.",
+      },
+      why: { formula: R08_FORMULA, inputs, result: "Warehouse + appointment missing → Amber" },
+    });
+  }
+  const passed = appt === "Yes";
   return ruleResult("R-08", BOOKING_SCOPE, {
     status: passed ? "pass" : "fail",
     found: passed ? "Warehouse delivery with an appointment booked." : "Warehouse delivery, but no delivery appointment is booked.",

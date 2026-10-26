@@ -79,15 +79,21 @@ describe("R-06 matching details", () => {
     expect(verdict("Alkaline cells")).toBe(null);
   });
 
-  it("device and ambiguous drink words ask instead of failing (approved Q8)", () => {
-    expect(verdict("Smartphone 128GB")).toBe("ask");
-    expect(verdict("Vitamin tablets")).toBe("ask");
-    expect(verdict("London dry gin 70cl")).toBe("ask");
+  it("devices with lithium batteries and spirits are Red (rules checklist 27, 29)", () => {
+    expect(verdict("Smartphone 128GB")).toBe("red");
+    expect(verdict("Kids rechargeable remote control car")).toBe("red");
+    expect(verdict("Bluetooth wireless earbuds with charging case")).toBe("red");
+    expect(verdict("London dry gin 70cl")).toBe("red");
+    expect(verdict("Non-rechargeable lithium coin cell")).toBe("red");
   });
 
-  it("accessory words turn device/drink hits into a question, never a silent pass", () => {
-    expect(verdict("Phone case")).toBe("ask");
-    expect(verdict("Whisky glass")).toBe("ask");
+  it("accessories and look-alikes are not dangerous goods (rules checklist 30)", () => {
+    expect(verdict("Silicone phone case (no electronics)")).toBeNull();
+    expect(verdict("Neoprene laptop sleeve, 13 inch")).toBeNull();
+    expect(verdict("Whisky glass")).toBeNull();
+    expect(verdict("Vitamin tablets")).toBeNull();
+    expect(verdict("AA alkaline batteries, pack of 4")).toBeNull();
+    expect(verdict("Ginger biscuits")).toBeNull();
     expect(verdict("Whisky 70cl")).toBe("red");
   });
 
@@ -104,7 +110,7 @@ describe("R-06 matching details", () => {
 describe("R-06 HS hints", () => {
   it.each([
     ["850760", "lithium"],
-    ["850610", "lithium"],
+    ["850650", "lithium"],
     ["330300", "flammable_liquid"],
     ["330720", "aerosol"],
     ["320810", "flammable_liquid"],

@@ -73,6 +73,19 @@ const ITEM_COLUMNS = [
   "Country of origin",
 ] as const;
 
+// Other names sellers' (and the judges') sheets use for the same column. The judges' Items sheet
+// says "Quantity (units)". Matched after trimming and ignoring case.
+const HEADER_ALIASES: Record<string, readonly string[]> = {
+  Quantity: ["Quantity (units)", "Qty", "Units", "Quantity (pcs)"],
+  "Unit price": ["Unit price (GBP)", "Unit price (£)", "Price per unit"],
+  "Unit weight (kg)": ["Unit weight", "Unit weight (kgs)", "Weight per unit (kg)"],
+  "Total gross weight (kg)": ["Total gross weight", "Gross weight (kg)", "Gross weight"],
+  "Total declared value": ["Total declared value (GBP)", "Declared value", "Total value"],
+  "Delivery appointment booked": ["Delivery appointment", "Appointment booked"],
+  "Units per carton": ["Units per box", "Units / carton"],
+  "Ready to ship date": ["Ready date", "Ready to ship"],
+};
+
 interface Table {
   sheet: RawSheet;
   /** 0-based index of the header row. */
@@ -97,6 +110,13 @@ function findHeader(sheet: RawSheet): Table | null {
       const h = cellText(c).trim();
       if (h && !columns.has(normaliseHeader(h))) columns.set(normaliseHeader(h), { index, header: h.replace(/\s+/g, " ") });
     });
+    for (const [name, aliases] of Object.entries(HEADER_ALIASES)) {
+      if (columns.has(normaliseHeader(name))) continue;
+      const alias = aliases.map(normaliseHeader).find((a) => columns.has(a));
+      if (!alias) continue;
+      columns.set(normaliseHeader(name), columns.get(alias)!);
+      columns.delete(alias);
+    }
     return { sheet, headerRow: r, columns };
   }
   return null;

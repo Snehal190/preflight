@@ -6,11 +6,13 @@ import { ASSUMPTIONS, EMPTY_PALLET_KG, type AssumptionId } from "../reference/as
 import { Decimal, dec, sum } from "../num";
 import { fmtDateField, fmtDateSpoken, fmtGBP, fmtKg, fmtNum } from "../format";
 import { itemName } from "../rules/helpers";
+import { hsDigits } from "../parse/values";
 import { matchAllowed, mentionsOtherCurrency, parseAmount, type AmountKind, type ListKind } from "./normalize";
 import { resolveDate } from "./dates";
-import { blank, isGiven, type ChatSession } from "./session";
+import { blank, isGiven, newChatSession, type ChatSession } from "./session";
 import { runChecks } from "../rules";
 import { contextFor } from "../booking/evaluate";
+import { dropStaleAdvice } from "../booking/state";
 import { applyPatches, suggestFixes, withFixes } from "../repair";
 import { issueQuestions, type IssueAction } from "./clarify";
 
@@ -21,6 +23,8 @@ export interface TurnDeps {
   today: string;
   /** AI HS suggestion for a product (advice only). */
   suggestHs: (description: string) => Promise<{ code: string; reason: string } | null>;
+  /** Editing an uploaded booking: no read-back, and only new problems are listed. */
+  edit?: boolean;
 }
 
 export interface TurnResult {
@@ -113,7 +117,10 @@ function norm(s: string): string {
 
 type ItemPick = { item: Item } | { create: string | null } | { ambiguous: Item[] };
 
-function pickItem(b: Booking, ref: string | null, op: ExtractOperation["op"]): ItemPick {
+/** Products as they were named at the start of this message ("rename X and set X's HS code" in one go). */
+type ItemNames = { itemId: string; desc: string | null; sku: string | null }[];
+
+function pickItem(b: Booking, ref: string | null, op: ExtractOperation["op"], before: ItemNames = []): ItemPick {
   if (op === "add_item") return { create: ref };
   if (!ref) {
     if (b.items.length === 1) return { item: b.items[0] };
@@ -130,11 +137,17 @@ function pickItem(b: Booking, ref: string | null, op: ExtractOperation["op"]): I
   });
   if (byDesc.length === 1) return { item: byDesc[0] };
   if (byDesc.length > 1) return { ambiguous: byDesc };
+  // Renamed earlier in this same message: match the old name.
+  const wasNamed = before.filter((n) => (n.sku && norm(n.sku) === r) || (n.desc && (norm(n.desc) === r || norm(n.desc).includes(r))));
+  const renamed = wasNamed.map((n) => b.items.find((it) => it.itemId === n.itemId)).filter((x): x is Item => Boolean(x));
+  if (renamed.length === 1) return { item: renamed[0] };
   if (b.items.length === 1 && !b.items[0].description.value) return { item: b.items[0] };
   return { create: ref };
 }
 
 interface Notes {
+  /** Product names at the start of the message. */
+  before: ItemNames;
   recorded: string[];
   problems: string[];
   /** Things to ask about besides missing fields (ambiguities, totals that no longer match). */
@@ -168,7 +181,7 @@ function interpret(kind: FieldKind, op: ExtractOperation, today: string): { ok: 
       return { ok: true, value: iso, shown: fmtDateSpoken(iso), note: null };
     }
     case "hs": {
-      const digits = raw.replace(/[\s.\-]/g, "");
+      const digits = hsDigits(raw);
       if (!/^\d+$/.test(digits)) return { ok: false, why: `"${raw}" doesn't look like an HS code (digits only).` };
       return { ok: true, value: digits, shown: digits, note: null };
     }
@@ -179,7 +192,7 @@ function interpret(kind: FieldKind, op: ExtractOperation, today: string): { ok: 
 
 function listOptions(list: ListKind): string {
   const opts: Record<ListKind, string> = {
-    originCity: "I can only book from London, Birmingham or Leeds.",
+    originCity: "I can only book from London, Manchester, Birmingham or Leeds.",
     destinationCity: "I can only deliver to Berlin, Frankfurt, Hamburg, Paris, Lyon, Amsterdam or Rotterdam.",
     destinationCountry: "I can only deliver to Germany, France or the Netherlands.",
     destinationType: "Is it a warehouse or a business address?",
@@ -279,7 +292,12 @@ async function applyOp(s: ChatSession, opIn: ExtractOperation, messageId: string
   }
 
   // Item operations.
-  const pick = pickItem(b, op.itemRef, op.op);
+  const pick = pickItem(b, op.itemRef, op.op, notes.before);
+  // Editing an uploaded booking: a product is only added when the seller says so.
+  if ("create" in pick && deps.edit && op.op !== "add_item") {
+    notes.problems.push(`I couldn't find "${op.itemRef ?? "that product"}" in this booking. Say its SKU, e.g. ${b.items.map(itemName).slice(0, 3).join(", ")}.`);
+    return;
+  }
   if ("ambiguous" in pick) {
     notes.asks.push(`You said "${op.quote}", which product is that for: ${pick.ambiguous.map((x) => x.description.value ?? itemName(x)).join(" or ")}?`);
     return;
@@ -491,7 +509,7 @@ export function missingQuestions(s: ChatSession): Question[] {
   const missing = (f: FieldValue<unknown>) => f.value === null;
 
   // 1 route
-  ask("originCity", "Which UK city is it collected from: London, Birmingham or Leeds?", missing(b.originCity));
+  ask("originCity", "Which UK city is it collected from (for example London, Birmingham or Leeds)?", missing(b.originCity));
   ask("destinationCity", "Where is it going: Berlin, Frankfurt, Hamburg, Paris, Lyon, Amsterdam or Rotterdam?", missing(b.destinationCity));
   // 2 items
   if (b.items.length === 0) ask("items", "What are you shipping? A short description of each product, with how many units and the price per unit.", true);
@@ -714,7 +732,7 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
         yesNoNotes.push(`**ASSUMPTION:** no SKU given, using ${sku}.`);
       }
     }
-    if (!realOps) return say(nextStep(s, yesNoNotes, transcript, deps.today));
+    if (!realOps) return say(nextStep(s, yesNoNotes, transcript, deps.today, [], false, deps.edit));
   }
 
   if (ex.newShipment) {
@@ -730,7 +748,15 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
   const otherCurrency = mentionsOtherCurrency(text);
   const MONEY_FIELDS = new Set(["unitPrice", "declaredValue", "currency"]);
   const kept = otherCurrency ? verified.kept.filter((o) => !o.field || !MONEY_FIELDS.has(o.field)) : verified.kept;
-  const notes: Notes = { recorded: [], problems: [], asks: [], changed: false, dateChanged: false, itemsChanged: false };
+  const notes: Notes = {
+    before: s.booking.items.map((it) => ({ itemId: it.itemId, desc: it.description.value, sku: it.sku.value })),
+    recorded: [],
+    problems: [],
+    asks: [],
+    changed: false,
+    dateChanged: false,
+    itemsChanged: false,
+  };
   const before = { cartons: s.booking.cartons, declared: s.booking.declaredValue };
   for (const op of kept) await applyOp(s, op, messageId, deps, transcript, notes);
   if (otherCurrency) notes.problems.push("Please give the value in GBP. I don't convert currencies, so I haven't changed any prices or values.");
@@ -742,6 +768,8 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
     notes.asks.push(`You said "${a.quote.trim().replace(/[.!?]+$/, "")}", ${about.charAt(0).toLowerCase()}${about.slice(1)}. Which detail is that?`);
   }
   const derivedNotes = derive(s);
+  // A changed description or HS code makes earlier AI advice about that product stale.
+  s.state = dropStaleAdvice(s.booking, s.state);
 
   // Discarded values (quote not in the message) are only worth mentioning if still missing.
   const stillMissing = (o: ExtractOperation): boolean => {
@@ -778,7 +806,28 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
   if (!head.length && !notes.recorded.length && !notes.problems.length && !derivedNotes.length && !notes.asks.length && !s.flags.pendingHs) {
     head.push("I didn't catch any booking details in that.");
   }
-  return say(nextStep(s, head, transcript, deps.today, notes.asks, notes.dateChanged));
+  return say(nextStep(s, head, transcript, deps.today, notes.asks, notes.dateChanged, deps.edit));
+}
+
+/**
+ * A chat session around an uploaded booking, so the seller can speak or type changes. Problems the
+ * booking already shows on screen are marked as listed and asked, so replies only mention new ones.
+ */
+export function editSession(booking: Booking, state: ChatSession["state"], today: string): ChatSession {
+  const s = newChatSession(`edit-${booking.key}`);
+  s.booking = structuredClone(booking);
+  s.state = structuredClone(state);
+  s.flags.readbackShown = true;
+  s.flags.readbackConfirmed = true;
+  s.flags.dateConfirmed = true;
+  s.flags.itemCounter = booking.items.length;
+  for (const it of booking.items) if (!s.flags.skuAsked.includes(it.itemId)) s.flags.skuAsked.push(it.itemId);
+  const ctx = contextFor(s.state, today);
+  const report = runChecks(s.booking, ctx);
+  const issues = issueQuestions(withFixes(report, suggestFixes(s.booking, ctx, report), s.booking), s.booking, s.state.acknowledged.map((a) => a.id));
+  s.flags.issuesListed = issues.map((q) => q.signature);
+  s.flags.issuesAsked = issues.map((q) => q.signature);
+  return s;
 }
 
 /** Applies the seller's yes/no to a problem we asked about; returns what to say. */
@@ -804,7 +853,7 @@ function resolveIssue(s: ChatSession, a: IssueAction, yes: boolean, messageId: s
 }
 
 /** Questions for this turn (max 3): what we asked, problems found (must-fix first), then missing details. */
-function nextStep(s: ChatSession, head: string[], voice: boolean, today: string, asks: string[] = [], dateJustSet = false): string {
+function nextStep(s: ChatSession, head: string[], voice: boolean, today: string, asks: string[] = [], dateJustSet = false, edit = false): string {
   const questions: string[] = [...asks];
   let yesNoOpen = false;
 
@@ -857,6 +906,9 @@ function nextStep(s: ChatSession, head: string[], voice: boolean, today: string,
   if (questions.length) {
     parts.push(questions.slice(0, 3).map((q, i) => (questions.length > 1 ? `${i + 1}. ${q}` : q)).join("\n"));
     s.lastQuestion = questions.slice(0, 3).join(" ");
+  } else if (edit) {
+    parts.push(`Re-checked: ${report.headline}`);
+    s.lastQuestion = null;
   } else if (!s.flags.readbackConfirmed) {
     parts.push(readBack(s, voice));
     const open = issues.filter((q) => s.flags.issuesAsked.includes(q.signature));

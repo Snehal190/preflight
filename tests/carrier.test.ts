@@ -81,7 +81,9 @@ describe("weight eligibility", () => {
   it("800 kg per pallet → no carrier, minimum pallets shown", () => {
     const a = run({ pallets: 3, grossKg: dec(2400) });
     expect(a.noneEligible).toBe(true);
-    expect(a.recommended).toBeNull();
+    // Still a recommendation, once repacked (rules checklist 68): B on 4 pallets = £880 is cheapest.
+    expect(a.recommended).toBe("B");
+    expect(a.reason).toContain("Once repacked onto 4 pallets");
     expect(a.minPalletsAny).toBe(4);
     expect(a.rows.map((r) => [r.carrier.id, r.minPallets])).toEqual([["A", 5], ["B", 4], ["C", 6]]);
   });
@@ -101,11 +103,12 @@ describe("weight eligibility", () => {
     expect(run({ netKg: null }).evalBasis).toBe("gross_only");
   });
 
-  it("missing pallets: per-pallet prices only, no total, no recommendation", () => {
+  it("missing pallets: per-pallet prices only, no total, a provisional recommendation", () => {
     const a = run({ pallets: null });
     expect(a.rows.every((r) => r.totalCost === null && r.pricePerPallet !== null)).toBe(true);
     expect(a.preferred).toBe("A");
-    expect(a.recommended).toBeNull();
+    expect(a.recommended).toBe("A");
+    expect(a.reason).toContain("Once we know the pallets and weight");
   });
 
   it("missing priority → no recommendation (never defaults)", () => {

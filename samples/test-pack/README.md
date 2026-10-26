@@ -19,7 +19,7 @@ The **What to tell us** checklist ticks off each detail as it's captured.
 |---|---|---|
 | 1 | "Hi, I'm shipping 600 scented candles from Leeds to Rotterdamm. They're £8 each, 24 to a box, and it's going on two pallets." | Reads "Rotterdamm" as **Rotterdam** and asks you to correct it if wrong. Netherlands filled from the city. Numbers spelled out (600 (six-zero-zero)). **Works out** 25 cartons (600 ÷ 24), total cartons 25 and declared value £4,800. Asks **at most 3** questions: unit weight, gross weight, HS code. |
 | 2 | "Sorry, the price is actually 10 euros each." | **"Please give the value in GBP."** — the price stays £8 (never converted). |
-| 3 | "And it's collected from Bristol, not Leeds." | Refuses Bristol: **"I can only book from London, Birmingham or Leeds."** Origin stays Leeds. |
+| 3 | "And it's collected from Bristol, not Leeds." | Refuses Bristol: **"I can only book from London, Manchester, Birmingham or Leeds."** Origin stays Leeds. |
 | 4 | "Each candle weighs 400 grams. I don't know the total gross weight." | Converts **400 g = 0.4 kg**. Asks **"What does an empty pallet weigh?"** |
 | 5 | "No idea what an empty pallet weighs either, and I don't know the HS code." | **ASSUMPTION** in bold: estimated gross weight **290 kg = 240 kg + 2 pallets × 25 kg**. Offers an **HS suggestion (e.g. 340600), labelled "please verify; you are legally responsible"**, and asks "Shall I use it?" |
 | 6 | "Yes, use that code." | HS code recorded as confirmed. |

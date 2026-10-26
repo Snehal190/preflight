@@ -15,6 +15,14 @@ import type { CheckResult } from "./types";
 // Keyword Red can never be cleared — not by the AI, not by a seller answer.
 // AI can only ADD a flag. HS hints and uncertain AI produce a question.
 
+/** How a seller would say it: "contains a lithium battery", "is an aerosol can". */
+const PLAIN: Record<DgCategory, string> = {
+  lithium: "contains a lithium battery",
+  aerosol: "is an aerosol can",
+  flammable_liquid: "is a flammable liquid",
+};
+const WHY_NOT = "Road carriers can't take lithium batteries, aerosols or flammable liquids on a normal pallet.";
+
 const FORMULA = "Keyword match (not negated) OR AI flag with high confidence → Red; HS hint / ambiguous word / uncertain AI → ask";
 
 /** Key for the seller's Yes/No answer. Includes the description so an edited description is re-asked. */
@@ -32,10 +40,11 @@ export function r06(it: Item, ctx: CheckContext): CheckResult {
   }
 
   const fix: CheckResult["fix"] = {
-    text: `Remove ${name} from this shipment, or ship it separately as dangerous goods.`,
+    text: `Take ${name} off this booking, or send it separately with a dangerous-goods carrier.`,
     noApplyReason: "Dangerous goods need your own action.",
   };
-  const hits = scanKeywords(`${desc} ${it.sku.value ?? ""}`);
+  // The SKU is scanned on its own: a word in a SKU must never cancel a match in the description.
+  const hits = [...scanKeywords(desc), ...scanKeywords(it.sku.value ?? "")];
   // Cite the most specific matching term ("power bank" rather than "mah").
   const red = hits.filter((h) => effectiveTier(h) === "red").sort((a, b) => b.term.length - a.term.length)[0];
   const ai = ctx.dgAi?.available ? ctx.dgAi.byItemId[it.itemId] : undefined;
@@ -47,7 +56,7 @@ export function r06(it: Item, ctx: CheckContext): CheckResult {
   if (red) {
     return ruleResult("R-06", scope, {
       status: "fail",
-      found: `${name}: "${desc}" contains "${red.term}", which means ${DG_CATEGORY_LABEL[red.category]}.`,
+      found: `${name} "${desc}" ${PLAIN[red.category]} (the description says "${red.term}"). ${WHY_NOT}`,
       shouldBe: "No lithium batteries, aerosols or flammable liquids.",
       fix,
       why: { formula: FORMULA, inputs: allInputs, result: `Keyword "${red.term}" (${red.category}) → Red${negNote}` },
@@ -56,7 +65,7 @@ export function r06(it: Item, ctx: CheckContext): CheckResult {
   if (ai && ai.category !== "none" && ai.category !== "unsure" && ai.confidence === "high") {
     return ruleResult("R-06", scope, {
       status: "fail",
-      found: `${name}: AI review says "${desc}" is likely ${DG_CATEGORY_LABEL[ai.category]}, ${ai.reason}`,
+      found: `${name} "${desc}" ${PLAIN[ai.category]}. Our AI check: ${ai.reason} ${WHY_NOT}`,
       shouldBe: "No lithium batteries, aerosols or flammable liquids.",
       fix,
       why: { formula: FORMULA, inputs: allInputs, result: `AI flag ${ai.category}, high confidence → Red` },
@@ -67,14 +76,14 @@ export function r06(it: Item, ctx: CheckContext): CheckResult {
   const asks: { category: DgCategory | null; why: string }[] = [];
   for (const h of hits) {
     if (effectiveTier(h) === "ask") {
-      asks.push({ category: h.category, why: h.downgradedBy ? `"${h.term}" with "${h.downgradedBy}"` : `"${h.term}"` });
+      asks.push({ category: h.category, why: h.downgradedBy ? `the description says "${h.term}" but also "${h.downgradedBy}"` : `the description says "${h.term}"` });
     }
   }
   const hint = hsHint(it.hsCode.value);
-  if (hint) asks.push({ category: hint.category, why: `HS code starts ${hint.prefix} (${hint.label})` });
-  if (ai && ai.category === "unsure") asks.push({ category: null, why: `AI review unsure: ${ai.reason}` });
+  if (hint) asks.push({ category: hint.category, why: `its HS code ${it.hsCode.value} is the customs code for ${hint.label}` });
+  if (ai && ai.category === "unsure") asks.push({ category: null, why: `our AI check couldn't tell (${ai.reason.replace(/\.$/, "")})` });
   if (ai && ai.category !== "none" && ai.category !== "unsure" && ai.confidence !== "high") {
-    asks.push({ category: ai.category, why: `AI review: possibly ${DG_CATEGORY_LABEL[ai.category]} (${ai.confidence} confidence), ${ai.reason}` });
+    asks.push({ category: ai.category, why: `our AI check thinks it may be ${DG_CATEGORY_LABEL[ai.category]} (${ai.reason.replace(/\.$/, "")})` });
   }
 
   if (asks.length) {
@@ -83,7 +92,7 @@ export function r06(it: Item, ctx: CheckContext): CheckResult {
     const prompt = `Does '${desc}' contain ${what}?`;
     const answerKey = r06AnswerKey(it);
     const answer = ctx.answers?.[answerKey];
-    const reasonText = asks.map((a) => a.why).join("; ");
+    const reasonText = asks.map((a) => a.why).join(", and ");
     if (answer === "yes") {
       return ruleResult("R-06", scope, {
         status: "fail",
@@ -106,9 +115,9 @@ export function r06(it: Item, ctx: CheckContext): CheckResult {
     }
     return ruleResult("R-06", scope, {
       status: "needs_answer",
-      found: `${name}: we can't tell whether "${desc}" contains ${what} (${reasonText}).`,
+      found: `${name} "${desc}" may be dangerous goods: ${reasonText}. Please confirm whether it contains ${what}.`,
       shouldBe: "No lithium batteries, aerosols or flammable liquids.",
-      fix: { text: "Answer the question: Yes or No." },
+      fix: { text: `Answer Yes or No. If yes, take ${name} off this booking or send it with a dangerous-goods carrier.` },
       why: { formula: FORMULA, inputs: allInputs, result: `Asked because: ${reasonText}` },
       question: { prompt, answerKey },
     });

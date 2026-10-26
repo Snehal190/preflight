@@ -92,7 +92,7 @@ describe("test pack: key details", () => {
 
   it("T-04 flags the lost leading zero on 90121", async () => {
     const { report } = await issues("T-04");
-    expect(report.results.find((r) => r.ruleId === "R-01" && r.fix.hint)!.fix.hint).toContain("did you mean 090121?");
+    expect(report.results.find((r) => r.ruleId === "R-01" && r.fix.hint)!.fix.hint).toContain("Did you mean 090121?");
   });
 
   it("T-05 shows the 5-pallet alternative for Carrier C", async () => {

@@ -59,8 +59,9 @@ export function computeDeliveryDates(input: {
   const collectionBlockers = [holidays.uk];
   let start = readyDate;
   if (readyDate < today) {
-    start = today;
-    notes.push(`Your ready date ${fmtDateLong(readyDate)} has passed, so collection is planned from today, ${fmtDateLong(today)}, or the next working day.`);
+    // Past ready date → collection on the next working day from today (rules checklist 87).
+    start = addDays(today, 1);
+    notes.push(`Your ready date ${fmtDateLong(readyDate)} has passed, so collection is planned for the next working day from today.`);
   }
   let collection = start;
   for (let guard = 0; guard < 60; guard++) {

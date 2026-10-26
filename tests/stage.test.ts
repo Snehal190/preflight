@@ -18,7 +18,7 @@ describe("one-screen check stage", () => {
     const states = (id: string) => Object.fromEntries(checkSequence(runChecks(presetBooking(id, TODAY), ctx).results).map((s) => [s.ruleId, s.state]));
     expect(states("BK-102")).toMatchObject({ "R-02": "fail", "R-03": "fail" });
     expect(states("BK-105")).toMatchObject({ "R-06": "fail" });
-    expect(states("BK-104")["R-05"]).toBe("pass"); // B fits; the express note doesn't block
+    expect(states("BK-104")["R-05"]).toBe("amber"); // B fits, but the express carrier the seller wanted can't: shown, not a green OK
     expect(states("BK-107")).toMatchObject({ "R-04": "fail", "R-08": "amber", "R-10": "amber" });
   });
 
