@@ -37,7 +37,8 @@ export default function View() {
     <div className="space-y-8">
       <div className="space-y-2">
         <Link href={`/batch/${batchId}`} className="text-sm underline">← All bookings</Link>
-        <h1 className="text-5xl">{label}</h1>
+        <p className="eyebrow">Check before shipping</p>
+        <h1 className="text-[34px]">{label}</h1>
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge status={e.status} />
           <span className="font-semibold">{e.headline}</span>

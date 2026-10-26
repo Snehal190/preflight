@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Anton } from "next/font/google";
-import localFont from "next/font/local";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const anton = Anton({ weight: "400", subsets: ["latin"], variable: "--font-anton" });
-// Satoshi (ITF Free Font License, self-hosted — see app/fonts/Satoshi-LICENSE.txt).
-const satoshi = localFont({ src: "./fonts/Satoshi-Variable.woff2", variable: "--font-satoshi", weight: "300 900" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const jetbrains = JetBrains_Mono({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-jetbrains" });
 
 export const metadata: Metadata = {
   title: "PreFlight",
@@ -14,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const NAV = [
+  { href: "/", label: "Check a shipment" },
   { href: "/chat", label: "Speak or type" },
   { href: "/upload", label: "Upload sheets" },
   { href: "/rules", label: "Rules" },
@@ -21,24 +20,28 @@ const NAV = [
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${anton.variable} ${satoshi.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} ${jetbrains.variable} h-full`}>
       <body className="min-h-full flex flex-col">
-        <header className="sticky top-0 z-20 h-16 border-b border-ink/10 bg-paper/90 backdrop-blur flex items-center justify-between gap-4 px-4 sm:px-8">
-          <Link href="/" className="font-display text-3xl uppercase leading-none">
-            PreFlight<span className="text-accent-ink">.</span>
+        <header className="sticky top-0 z-30 h-14 border-b border-line bg-paper flex items-center gap-6 px-4 sm:px-5">
+          <Link href="/" className="flex items-center gap-2 text-[17px] font-extrabold tracking-tight">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-steel text-sm text-white" aria-hidden>✓</span>
+            PreFlight
           </Link>
-          <nav className="flex items-center gap-1 sm:gap-2 text-sm font-medium">
+          <nav aria-label="Main" className="hidden md:flex flex-1 items-center gap-5 font-medium text-ink-2">
             {NAV.map((n) => (
-              <Link key={n.href} href={n.href} className="rounded-full px-3 py-1.5 hover:bg-ink/5">
+              <Link key={n.href} href={n.href} className="hover:text-ink">
                 {n.label}
               </Link>
             ))}
           </nav>
+          <nav aria-label="Main (compact)" className="md:hidden flex flex-1 items-center gap-3 text-sm font-medium text-ink-2">
+            <Link href="/chat">Speak</Link>
+            <Link href="/upload">Upload</Link>
+            <Link href="/rules">Rules</Link>
+          </nav>
+          <Link href="/chat" className="btn hidden sm:inline-flex">New booking</Link>
         </header>
-        <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-8">{children}</main>
-        <footer className="border-t border-ink/10 px-4 sm:px-8 py-6 text-xs text-ink/60">
-          PreFlight checks a booking request before it ships. Nothing is sent to a carrier.
-        </footer>
+        <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-5 py-6">{children}</main>
       </body>
     </html>
   );

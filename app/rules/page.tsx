@@ -15,9 +15,8 @@ export default function RulesPage() {
   return (
     <div className="space-y-12">
       <section className="space-y-4">
-        <h1 className="text-6xl sm:text-7xl">
-          The <span className="hl">10 rules</span>
-        </h1>
+        <p className="eyebrow">The rulebook</p>
+        <h1 className="text-[34px] sm:text-[40px]">The 10 rules we check</h1>
         <p className="max-w-2xl text-lg text-ink/70">
           Every booking is checked against the same ten rules, every time. Here&apos;s what each one means and why it matters.
         </p>
@@ -45,7 +44,7 @@ export default function RulesPage() {
               <li key={id} className="card card-hover p-5 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-baseline gap-3">
-                    <span className="font-display text-4xl leading-none text-accent-ink/40">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="mono text-2xl font-bold leading-none text-accent/50">{String(i + 1).padStart(2, "0")}</span>
                     <h3 className="font-bold text-lg leading-tight">{r.plainName}</h3>
                   </div>
                   <span className={`badge ${must ? "bg-bad text-white" : "bg-warn text-white"}`}>{must ? "Must fix" : "Please check"}</span>

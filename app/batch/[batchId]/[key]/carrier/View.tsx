@@ -25,7 +25,8 @@ export default function View() {
     <div className="space-y-8">
       <div className="space-y-2">
         <Link href={back} className="text-sm underline">← Back to checks</Link>
-        <h1 className="text-5xl">Carrier · {label}</h1>
+        <p className="eyebrow">Choose a carrier</p>
+        <h1 className="text-[34px]">Carrier · {label}</h1>
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge status={e.status} />
           <span className="font-semibold">{e.headline}</span>

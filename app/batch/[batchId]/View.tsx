@@ -22,7 +22,8 @@ export default function View() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-5xl">Your bookings</h1>
+      <p className="eyebrow">Upload results</p>
+      <h1 className="text-[34px]">Your bookings</h1>
       <p className="text-sm text-ink/60">{batch.files.join(", ")} · {batch.bookings.length} booking{batch.bookings.length === 1 ? "" : "s"}</p>
 
       {batch.warnings.length > 0 && (

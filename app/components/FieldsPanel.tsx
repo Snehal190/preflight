@@ -17,7 +17,7 @@ function display(field: string, f: FieldValue<unknown>): string {
 const SOURCE_CLS: Record<string, string> = {
   file: "bg-sage/30",
   stated: "bg-sage/30",
-  derived: "bg-accent/60",
+  derived: "bg-accent-soft text-accent",
   confirmed: "bg-sage/50",
   assumed: "bg-accent font-bold",
   fixed: "bg-ink text-white",

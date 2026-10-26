@@ -174,9 +174,8 @@ export default function View() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-5xl sm:text-6xl">
-            Speak <span className="hl">or type</span>
-          </h1>
+          <p className="eyebrow">New booking · voice or text</p>
+          <h1 className="text-[34px]">Speak or type your shipment</h1>
           <p className="text-ink/70">Tell us about your shipment. The “What to tell us” checklist (beside the chat, or below it on a phone) shows what to mention.</p>
         </div>
         <button type="button" className="btn btn-ghost text-sm" onClick={() => router.push("/chat")}>
@@ -196,7 +195,7 @@ export default function View() {
             {session.messages.map((m) => (
               <li key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${m.role === "assistant" ? "bg-paper border border-ink/10 rounded-tl-sm" : "bg-ink text-white rounded-tr-sm"}`}>
-                  <p className={`text-[0.7rem] font-bold uppercase tracking-wider mb-1 ${m.role === "assistant" ? "text-accent-ink" : "text-accent"}`}>
+                  <p className={`text-[0.7rem] font-bold uppercase tracking-wider mb-1 ${m.role === "assistant" ? "text-accent" : "text-white/70"}`}>
                     {m.role === "assistant" ? "PreFlight" : m.transcript ? "You · spoken" : "You"}
                   </p>
                   <Rich text={m.text} />
@@ -250,7 +249,7 @@ export default function View() {
             />
             {voiceNote && <p className="text-xs font-semibold text-warn">{voiceNote}</p>}
             {countdown !== null ? (
-              <div className="flex flex-wrap items-center gap-3 rounded-xl bg-accent/40 border border-ink/20 px-3 py-2 text-sm" role="status">
+              <div className="flex flex-wrap items-center gap-3 rounded-xl bg-accent-soft border border-accent/30 px-3 py-2 text-sm" role="status">
                 <span className="font-semibold">Sending in {countdown}… check the words above.</span>
                 <button type="button" className="btn btn-ghost text-xs py-1" onClick={() => setCountdown(null)}>
                   Tap to edit
@@ -294,7 +293,7 @@ export default function View() {
               </div>
               {checklist.map((g) => (
                 <div key={g.title} className="space-y-1.5">
-                  <h3 className="font-display text-lg uppercase">{g.title}</h3>
+                  <h3 className="eyebrow">{g.title}</h3>
                   <ul className="space-y-1.5">
                     {g.items.map((it) => {
                       const t = TICK[it.state];
