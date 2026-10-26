@@ -22,11 +22,23 @@ export type AiTransport = (req: AiRequest) => Promise<string>;
 
 export type AiResult<T> = { ok: true; data: T } | { ok: false; reason: "unavailable" | "timeout" | "malformed" | "error" };
 
-/** One or more keys: GEMINI_API_KEYS (comma-separated) or GEMINI_API_KEY. */
+const MODEL_NAME = /^[a-z0-9][a-z0-9.\-]*$/;
+const DEFAULT_MODEL = "gemini-flash-latest";
+
+/**
+ * One or more keys: GEMINI_API_KEYS (comma-separated) or GEMINI_API_KEY. Keys pasted into
+ * GEMINI_MODEL by mistake are used as keys too (anything that isn't a model name).
+ */
 export function geminiKeys(): string[] {
-  return (process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || "").split(/[,\s]+/).filter(Boolean);
+  const misplaced = process.env.GEMINI_MODEL && !MODEL_NAME.test(process.env.GEMINI_MODEL.trim()) ? process.env.GEMINI_MODEL : "";
+  return (process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || misplaced || "").split(/[,\s]+/).filter(Boolean);
 }
-const model = () => process.env.GEMINI_MODEL || "gemini-flash-latest";
+/** GEMINI_MODEL if it's a model name, else the default. */
+export function geminiModel(): string {
+  const m = process.env.GEMINI_MODEL?.trim();
+  return m && MODEL_NAME.test(m) ? m : DEFAULT_MODEL;
+}
+const model = geminiModel;
 
 export function aiConfigured(): boolean {
   return geminiKeys().length > 0;

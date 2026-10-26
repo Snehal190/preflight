@@ -153,3 +153,22 @@ describe("several Gemini keys", () => {
     expect(isKeyProblem(Object.assign(new Error("Deadline expired"), { status: 504 }))).toBe(false);
   });
 });
+
+describe("Gemini settings", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  it("keys pasted into GEMINI_MODEL by mistake are used as keys, with the default model", async () => {
+    const { geminiKeys, geminiModel } = await import("@/lib/ai/client");
+    vi.stubEnv("GEMINI_API_KEYS", "");
+    vi.stubEnv("GEMINI_API_KEY", "");
+    vi.stubEnv("GEMINI_MODEL", "AQ.aaa-1,AQ.bbb_2,AQ.ccc3");
+    expect(geminiKeys()).toEqual(["AQ.aaa-1", "AQ.bbb_2", "AQ.ccc3"]);
+    expect(geminiModel()).toBe("gemini-flash-latest");
+  });
+  it("normal settings are used as given", async () => {
+    const { geminiKeys, geminiModel } = await import("@/lib/ai/client");
+    vi.stubEnv("GEMINI_API_KEYS", "k1,k2");
+    vi.stubEnv("GEMINI_MODEL", "gemini-2.5-flash");
+    expect(geminiKeys()).toEqual(["k1", "k2"]);
+    expect(geminiModel()).toBe("gemini-2.5-flash");
+  });
+});
