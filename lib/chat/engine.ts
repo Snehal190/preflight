@@ -215,6 +215,12 @@ async function applyOp(s: ChatSession, opIn: ExtractOperation, messageId: string
     return;
   }
 
+  // With one product, "90 boxes" is that product's box count (so units × boxes can be checked);
+  // a separate booking total only makes sense with several products.
+  if (!isItem && field === "cartons" && op.op === "set" && b.items.length === 1 && !isGiven(b.items[0].cartons)) {
+    return applyOp(s, { ...op, itemRef: b.items[0].description.value ?? b.items[0].sku.value ?? null }, messageId, deps, voice, notes);
+  }
+
   if (!isItem) {
     if (!field || !(field in BOOKING_SPEC)) return;
     const spec = BOOKING_SPEC[field];
@@ -590,6 +596,17 @@ function pendingYesNo(s: ChatSession, asked: string): { kind: YesNoKind; item?: 
   return out.sort((a, b) => a.at - b.at);
 }
 
+function pendingHints(kind: YesNoKind): RegExp {
+  const hints: Record<YesNoKind, RegExp> = {
+    hs: /\b(code|hs|suggest\w*|use (it|that|this))\b/i,
+    sku: /\bsku\b/i,
+    date: /\b(date|day|monday|tuesday|wednesday|thursday|friday|saturday|sunday|ready)\b/i,
+    readback: /\b(all|everything|booking)\b/i,
+    issue: /\b(change|fix|remove|slot|appointment|booked|contains?|battery|batteries|mean)\b/i,
+  };
+  return hints[kind];
+}
+
 const READBACK_QUESTION = "Is everything in the read-back correct?";
 const AFFIRM = /^(yes|yep|yeah|yup|y|correct|that'?s (right|correct)|right|confirm(ed)?|ok(ay)?|sure|all good|looks good|go ahead|use it)\b/i;
 const NEGATE = /^(no|nope|nah|n|wrong|incorrect|not right|don'?t)\b/i;
@@ -622,20 +639,20 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
   let pending = pendingYesNo(s, asked);
   // Several yes/no questions open: the seller's words say which one ("use that code" → HS).
   if (pending.length > 1) {
-    const hints: Record<YesNoKind, RegExp> = {
-      hs: /\b(code|hs|suggest\w*|use (it|that|this))\b/i,
-      sku: /\bsku\b/i,
-      date: /\b(date|day|monday|tuesday|wednesday|thursday|friday|saturday|sunday|ready)\b/i,
-      readback: /\b(all|everything|booking)\b/i,
-      issue: /\b(change|fix|remove|slot|appointment|booked|contains?|battery|batteries|mean)\b/i,
-    };
-    const named = pending.filter((p) => hints[p.kind].test(trimmed));
+    const named = pending.filter((p) => pendingHints(p.kind).test(trimmed));
     if (named.length === 1) pending = named;
   }
   // Operations the AI invented from a bare "yes" (e.g. the HS code itself) don't count as details.
   const realOps = verifiedOperations(text, ex).kept.length > 0;
   const yesNoNotes: string[] = [];
-  if (yesNo && (realOps ? pending.length === 1 && pending[0].kind !== "readback" : short && pending.length >= 1)) {
+  // With other details in the message, a yes/no only counts if its words name the question
+  // ("Yes, 1,080 is right" is about the number, not the date).
+  const named1 = pending.length === 1 && pendingHints(pending[0].kind).test(trimmed);
+  // A bare yes/no answers the first open question; anything more must name the question it answers.
+  const YN = "(yes|yeah|yep|yup|y|no|nope|nah|n|correct|right|ok(ay)?|sure|that'?s (right|correct)|confirm(ed)?|all good|looks good|please|thanks|thank you)";
+  const pure = new RegExp(`^${YN}([\\s.!,—-]+${YN})*[\\s.!]*$`, "i").test(trimmed);
+  if (yesNo && (realOps ? named1 && pending[0].kind !== "readback" : short && pending.length >= 1 && (pure || pending.some((p) => pendingHints(p.kind).test(trimmed))))) {
+    if (!pure && !realOps) pending = pending.filter((p) => pendingHints(p.kind).test(trimmed));
     const q = pending[0];
     const yes = yesNo === "yes";
     if (q.kind === "readback") {

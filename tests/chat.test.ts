@@ -443,3 +443,52 @@ describe("'What to tell us' checklist", () => {
     expect(tellUsChecklist(unknown.booking, unknown.flags).flatMap((g) => g.items).find((i) => i.label === "Total weight")!.state).toBe("unknown");
   });
 });
+
+describe("found by the mixed right/wrong speech", () => {
+  it("'12 to a box, 90 boxes' for one product is the product's box count, so 1,800 is caught", async () => {
+    const r = await turn(newChatSession("x"), "1,800 plates, 12 to a box, 90 boxes", [
+      op("description", "plates", "plates", { op: "add_item", itemRef: "plates" }),
+      op("quantity", "1,800", "1,800 plates", { itemRef: "plates" }),
+      op("unitsPerCarton", "12", "12 to a box", { itemRef: "plates" }),
+      op("cartons", "90", "90 boxes"),
+    ]);
+    expect(r.session.booking.items[0].cartons).toMatchObject({ value: 90, source: "stated" });
+    expect(r.reply).toContain("Did you mean: change plates quantity from 1,800 to 1,080?");
+  });
+
+  it("a recent day+month with no year is this year, and flagged as past", () => {
+    expect(resolveDate("20th of October", "2026-10-26")).toBe("2026-10-20");
+    expect(resolveDate("5th November", "2026-10-26")).toBe("2026-11-05");
+    expect(resolveDate("3rd March", "2026-10-26")).toBe("2027-03-03");
+  });
+
+  it("'Yes, 1,080 is right' doesn't confirm a pending date question", async () => {
+    let s = (await turn(newChatSession("x"), "ready 05-11-2026", [op("readyDate", "05-11-2026", "05-11-2026")])).session;
+    s = (await turn(s, "plates", [op("description", "plates", "plates", { op: "add_item", itemRef: "plates" })])).session;
+    s.lastQuestion = "Ready to ship Thursday 05 Nov 2026 (05-11-2026) — correct?";
+    const r = await turn(s, "Yes, 1,080 is right.", [op("quantity", "1,080", "1,080", { itemRef: "plates" })]);
+    expect(r.session.flags.dateConfirmed).toBe(false);
+    expect(r.session.booking.items[0].quantity.value).toBe(1080);
+  });
+});
+
+describe("a yes with extra words", () => {
+  it("'Yes, 1,080 is right' (no extracted detail) doesn't answer the date question", async () => {
+    const s = (await turn(newChatSession("x"), "ready 05-11-2026", [op("readyDate", "05-11-2026", "05-11-2026")])).session;
+    const r = await turn(s, "Yes, 1,080 is right.", []);
+    expect(r.session.flags.dateConfirmed).toBe(false);
+  });
+  it("a plain 'Yes.' still does", async () => {
+    const s = (await turn(newChatSession("x"), "ready 05-11-2026", [op("readyDate", "05-11-2026", "05-11-2026")])).session;
+    expect((await turn(s, "Yes.", [])).session.flags.dateConfirmed).toBe(true);
+  });
+});
+
+describe("plain yes variants", () => {
+  it("'yes that's right', 'Yes, please.' and 'No thanks' count as plain answers", async () => {
+    for (const t of ["yes that's right", "Yes, please.", "yep, correct"]) {
+      const s = (await turn(newChatSession("x"), "ready 05-11-2026", [op("readyDate", "05-11-2026", "05-11-2026")])).session;
+      expect((await turn(s, t, [])).session.flags.dateConfirmed).toBe(true);
+    }
+  });
+});

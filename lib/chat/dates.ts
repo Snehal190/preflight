@@ -11,12 +11,20 @@ function monthIndex(word: string): number {
   return MONTHS.findIndex((m) => word.startsWith(m)) + 1;
 }
 
+/** How far back a day + month with no year is still read as this year (then flagged as past). */
+const RECENT_PAST_DAYS = 90;
+
+/**
+ * Day + month, no year: the coming date — unless it fell in the last 90 days, in which case it's
+ * this year's (and the bot says it's in the past) rather than silently jumping to next year.
+ */
 function dayMonthOnly(d: number, m: number, today: string): string | null {
   const y = Number(today.slice(0, 4));
-  for (const yy of [y, y + 1]) {
-    if (isRealDate(yy, m, d) && toIso(yy, m, d) >= today) return toIso(yy, m, d);
-  }
-  return null;
+  if (!isRealDate(y, m, d)) return isRealDate(y + 1, m, d) ? toIso(y + 1, m, d) : null;
+  const thisYear = toIso(y, m, d);
+  if (thisYear >= today) return thisYear;
+  if (thisYear >= addDays(today, -RECENT_PAST_DAYS)) return thisYear;
+  return isRealDate(y + 1, m, d) ? toIso(y + 1, m, d) : null;
 }
 
 export function resolveDate(said: string, today: string): string | null {
