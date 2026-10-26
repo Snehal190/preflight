@@ -59,9 +59,9 @@ export default function View() {
       </section>
 
       <section className="flex flex-wrap gap-3 items-center">
-        <button type="button" className="btn" disabled title="Waiting for the invoice template">Download invoice</button>
+        <Link href={`${back}/invoice`} className="btn">Make the commercial invoice →</Link>
         <button type="button" className="btn btn-ghost" disabled title="Needs the database (build step 9)">Copy share link</button>
-        <span className="text-sm text-ink/60">Invoice: waiting for the template. Share link: needs the database.</span>
+        <span className="text-sm text-ink/60">Share link: needs the database.</span>
       </section>
     </div>
   );

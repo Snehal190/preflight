@@ -140,3 +140,13 @@ h1, h2, h3, .display {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
 }
+
+/* Printing the commercial invoice: only the invoice sheet, on white. */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  body {
+    background: #fff !important;
+  }
+}

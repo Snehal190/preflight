@@ -735,6 +735,12 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
     if (!realOps) return say(nextStep(s, yesNoNotes, transcript, deps.today, [], false, deps.edit));
   }
 
+  // A plain "yes", "ok" or "thanks" with no question open: nothing to change, so never ask what it
+  // refers to. Just confirm where things stand.
+  if (pure && pending.length === 0 && !realOps) {
+    return say(nextStep(s, deps.edit ? ["All good, your check is up to date."] : [], transcript, deps.today, [], false, deps.edit));
+  }
+
   if (ex.newShipment) {
     return say("It sounds like you're describing a second shipment. Each chat holds one booking, press **Start a new booking** for the other one. I haven't changed this booking.");
   }

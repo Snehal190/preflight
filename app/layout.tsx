@@ -22,7 +22,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrains.variable} h-full`}>
       <body className="min-h-full flex flex-col">
-        <header className="sticky top-0 z-30 h-14 border-b border-line bg-paper flex items-center gap-6 px-4 sm:px-5">
+        <header className="sticky top-0 z-30 h-14 print:hidden border-b border-line bg-paper flex items-center gap-6 px-4 sm:px-5">
           <Link href="/" className="flex items-center gap-2 text-[17px] font-extrabold tracking-tight">
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-black text-sm text-accent" aria-hidden>✓</span>
             PreFlight

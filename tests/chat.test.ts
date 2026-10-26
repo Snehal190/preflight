@@ -572,3 +572,14 @@ describe("changes to an uploaded booking (speak or type after upload)", () => {
     expect(r.reply).toContain("I spotted");
   });
 });
+
+describe("a plain yes with nothing asked", () => {
+  it("after a change, 'yes' just confirms the check is up to date (never asks what it refers to)", async () => {
+    const b = bk001({ items: [item({ sku: fv("GFT-500"), description: fv("Ceramic photo frame"), hsCode: fv("691390") })] });
+    const s = editSession(b, emptyState(), TODAY);
+    const r = await handleTurn(s, "yes", false, ok([], { ambiguities: [{ about: "unclear what 'yes' refers to", quote: "yes" }] }), { ...deps, edit: true });
+    expect(r.reply).toContain("All good, your check is up to date.");
+    expect(r.reply).toContain("Re-checked:");
+    expect(r.reply).not.toContain("Which detail is that?");
+  });
+});
