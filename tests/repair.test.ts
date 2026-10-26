@@ -42,8 +42,8 @@ describe("quantity 1,800 vs 12 × 90 (spec §19)", () => {
     expect(top.patches).toEqual([{ target: "item", itemId: "it-1", sku: "MUG-01", field: "quantity", from: "1800", to: "1080" }]);
     expect(top.typo).toBe("Looks like two digits were swapped.");
     expect(top.clears).toEqual(["R-02", "R-03"]);
-    expect(top.badge).toBe("Tested: clears R-02 and R-03, no new issues.");
-    expect(top.evidence).toBe("R-02 also passes exactly if MUG-01 quantity = 1,080, so 1,080 is very likely correct.");
+    expect(top.badge).toBe("Tested: fixes “Declared value matches the products” and “Units, boxes and quantity add up”, no new issues.");
+    expect(top.evidence).toBe("“Declared value matches the products” also passes exactly if MUG-01 quantity = 1,080, so 1,080 is very likely correct.");
     expect(top.summary).toBe("Change MUG-01 quantity from 1,800 to 1,080");
   });
 
@@ -153,4 +153,22 @@ describe("no suggestion ever introduces a new failure", () => {
       }
     });
   }
+});
+
+describe("worked-out (derived) values", () => {
+  it("recalculate when a fix is applied, and are never suggested as edits themselves", () => {
+    const derived = (v: number | string, formula: string) => ({ value: v, raw: null, source: "derived" as const, location: null, formula });
+    const b = bk001({
+      grossWeightKg: fv("1000"),
+      cartons: derived(90, "sum") as never,
+      declaredValue: derived("9000", "1,800 × £5") as never,
+      items: [item({ quantity: fv(1800) })],
+    });
+    const fixes = suggestFixes(b, ctx).byResult["R-03:item:it-1"];
+    expect(fixes[0].patches).toHaveLength(1);
+    expect(fixes[0].patches[0].field).toBe("quantity");
+    expect(fixes.some((f) => f.patches.some((p) => p.field === "declaredValue"))).toBe(false);
+    const fixed = applyPatches(b, fixes[0].patches);
+    expect(fixed.declaredValue).toMatchObject({ value: "5400", source: "derived" });
+  });
 });

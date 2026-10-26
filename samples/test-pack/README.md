@@ -10,9 +10,10 @@ Start the app, then open **http://localhost:3040**.
 
 ## 1. Voice script (Talk or type to book)
 
-Open **Talk or type to book**. For each line: press **🎙 Speak**, say the line, press **Stop**,
-check the transcript in the box (fix anything misheard), then press **Send**. You can also type
-the lines. Tick **Read replies aloud** if you want to hear the answers.
+Open **Talk or type to book**. For each line: press **Tap to speak** and say the line — your words appear in the box as you
+speak, and recording stops by itself when you pause. A 4-second "Sending…" countdown then
+starts: tap **Tap to edit** to fix a misheard word, or let it send. You can also type the lines.
+The **What to tell us** checklist ticks off each detail as it's captured.
 
 | # | Say this | What you should see |
 |---|---|---|
@@ -27,7 +28,7 @@ the lines. Tick **Read replies aloud** if you want to hear the answers.
 | 9 | "Yes." | Date confirmed. |
 | 10 | "Fastest please. It's going to a shop, and the seller is Brightwick Candles." | "shop" → **Business address**; **no appointment question**. Nothing missing → **full read-back** of every field and item. Panel: carrier **C**. |
 | 11 | "Add a pallet." | **Pallets 2 → 3**. Estimate recomputes to **315 kg**. Panel chips: `Pallets 2 → 3 · Total gross weight 290 → 315 · Cost £640 → £960 · Carrier unchanged`. |
-| 12 | "Also add 50 power banks, 10000 mAh, £15 each, 10 per box, 300 grams each, made in China, HS code 850760, SKU PB-10." | Adds the product, works out 5 cartons; derived totals recompute (30 cartons, £5,550). **Heads-up: R-06 · Dangerous goods (Red)** — "power bank" means a lithium battery. |
+| 12 | "Also add 50 power banks, 10000 mAh, £15 each, 10 per box, 300 grams each, made in China, HS code 850760, SKU PB-10." | Adds the product, works out 5 cartons; derived totals recompute (30 cartons, £5,550). Asks in plain words: "…contains "power bank", which means a lithium battery. That can't go on a normal road shipment. **Shall I remove** power banks…?" |
 | 13 | "Remove the power banks." | Removed; totals back to 25 cartons / £4,800; R-06 clears. |
 | 14 | "Make it 4." | Ambiguous → asks **which detail** "4" refers to (doesn't guess). |
 | 15 | "I meant 4 pallets." | Pallets 4; estimate 340 kg; read-back shown again. |

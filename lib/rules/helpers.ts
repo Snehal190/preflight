@@ -41,8 +41,9 @@ export function itemScope(it: Item): CheckScope {
 
 export const BOOKING_SCOPE: CheckScope = { kind: "booking" };
 
+/** Seller-facing title: plain words, no rule code (the code is in the Why? panel). */
 export function ruleTitle(id: RuleId): string {
-  return `${id} · ${RULEBOOK[id].shortName}`;
+  return RULEBOOK[id].plainName;
 }
 
 export function resultId(ruleId: string, scope: CheckScope, suffix?: string): string {
@@ -69,7 +70,7 @@ export function missingResult(ruleId: RuleId, scope: CheckScope, reasons: string
   return ruleResult(ruleId, scope, {
     status: "missing_data",
     found: reasons.join(" "),
-    shouldBe: `We need ${reasons.length === 1 ? "this value" : "these values"} to run ${ruleId}.`,
+    shouldBe: `We need ${reasons.length === 1 ? "this value" : "these values"} to check "${RULEBOOK[ruleId].plainName}".`,
     fix: { text: fixText ?? "Fill in the missing value(s) above, then the check will run." },
     why: { formula, inputs, result: "Not run — missing data." },
   });

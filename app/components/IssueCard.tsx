@@ -4,21 +4,24 @@ import { useState } from "react";
 import type { CheckResult, Patch } from "@/lib/rules/types";
 import { ASSUMPTIONS, type AssumptionId } from "@/lib/reference/assumptions";
 import { locationText } from "@/lib/rules/helpers";
+import { RULEBOOK, type RuleId } from "@/lib/reference/rulebook";
+import Link from "next/link";
 
+/** Seller-facing labels (Red = must fix, Amber = please check). See the Rules page. */
 export function stateLabel(r: CheckResult): { text: string; cls: string } {
   switch (r.status) {
     case "missing_data":
-      return { text: "Missing data", cls: "bg-ink text-white" };
+      return { text: "Missing info", cls: "bg-ink text-white" };
     case "needs_answer":
-      return { text: "Needs your answer", cls: "bg-accent text-ink border border-ink" };
+      return { text: "Question for you", cls: "bg-accent text-ink border border-ink" };
     case "pass":
-      return { text: "Pass", cls: "bg-sage/40 text-ink" };
+      return { text: "OK", cls: "bg-good/15 text-good" };
     case "not_applicable":
-      return { text: "Not applicable", cls: "bg-sage/30 text-ink" };
+      return { text: "Not needed", cls: "bg-sage/30 text-ink" };
     case "fail":
-      if (r.severity === "red") return { text: r.nonBlocking ? "Red — doesn't block" : "Red", cls: "bg-bad text-white" };
-      if (r.severity === "amber") return { text: "Amber", cls: "bg-warn text-white" };
-      return { text: "Info", cls: "bg-note text-white" };
+      if (r.severity === "red") return { text: r.nonBlocking ? "Note — doesn't block" : "Must fix", cls: "bg-bad text-white" };
+      if (r.severity === "amber") return { text: "Please check", cls: "bg-warn text-white" };
+      return { text: "Advice", cls: "bg-note text-white" };
   }
 }
 
@@ -51,10 +54,10 @@ export function IssueCard({ r, busy, acknowledgedBy, onApply, onAnswer, onAcknow
   const border = r.status === "fail" && r.severity === "red" ? "border-bad/50" : isAmber ? "border-warn/50" : "border-ink/15";
 
   return (
-    <article className={`rounded-xl border ${border} p-4 space-y-3`} id={r.id}>
+    <article className={`card border ${border} p-5 space-y-3`} id={r.id}>
       <header className="flex flex-wrap items-center gap-2">
-        <h3 className="font-semibold">{r.title}</h3>
-        <span className={`rounded px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${st.cls}`}>{st.text}</span>
+        <h3 className="font-bold text-lg">{r.title}</h3>
+        <span className={`badge ${st.cls}`}>{st.text}</span>
       </header>
 
       <dl className="grid gap-2 text-sm sm:grid-cols-[10rem_1fr]">
@@ -145,6 +148,11 @@ export function IssueCard({ r, busy, acknowledgedBy, onApply, onAnswer, onAcknow
       <details className="text-sm">
         <summary className="cursor-pointer font-semibold">Why?</summary>
         <div className="mt-2 space-y-2">
+          {r.ruleId.startsWith("R-") && (
+            <p className="text-ink/60">
+              Rulebook {r.ruleId}: {RULEBOOK[r.ruleId as RuleId].rule}. <Link href="/rules" className="underline">All rules</Link>
+            </p>
+          )}
           <p><span className="font-semibold">Formula:</span> {r.why.formula}</p>
           {r.why.inputs.length > 0 && (
             <table className="w-full text-xs">

@@ -73,8 +73,8 @@ describe("change chips (spec §12.8)", () => {
     const after = applyPatches(before, eb.results.find((r) => r.id === "R-03:item:it-1")!.fix.tested![0].patches);
     const chips = changeChips(before, eb, after, await evaluate(after));
     expect(chips).toContain("MUG-01 quantity 1,800 → 1,080");
-    expect(chips).toContain("R-02: Red → Pass");
-    expect(chips).toContain("R-03 (MUG-01): Red → Pass");
+    expect(chips).toContain("Declared value matches the products: Red → Pass");
+    expect(chips).toContain("Units, boxes and quantity add up (MUG-01): Red → Pass");
     expect(chips).toContain("Carrier unchanged");
   });
 });
@@ -119,12 +119,3 @@ describe("results table order (approved Q22)", () => {
   });
 });
 
-describe("chat heads-up for new issues", () => {
-  it("lists a new Red raised by this turn", async () => {
-    const { newBlockingIssues } = await import("@/lib/chat/announce");
-    const before = await evaluate();
-    const after = await evaluate(bk001({ items: [item(), item({ sku: fv("PB-10"), description: fv("Power bank 10000mAh") }, "it-2")] }));
-    const lines = newBlockingIssues(before, after);
-    expect(lines.some((l) => l.startsWith("R-06 · Dangerous goods (Red): PB-10"))).toBe(true);
-  });
-});

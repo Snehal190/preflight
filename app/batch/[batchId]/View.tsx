@@ -38,7 +38,7 @@ export default function View() {
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="text-left border-b border-ink/20">
-              {["Booking", "Seller", "Route", "Status", "Red", "Amber", "Info", "Missing", "Needs answer", "Provisional carrier"].map((h) => (
+              {["Booking", "Seller", "Route", "Status", "Must fix", "Please check", "Advice", "Missing info", "Questions", "Provisional carrier"].map((h) => (
                 <th key={h} className="py-2 pr-3 font-semibold whitespace-nowrap">{h}</th>
               ))}
             </tr>

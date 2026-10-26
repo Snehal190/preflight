@@ -29,11 +29,11 @@ export interface CheckReport {
   headline: string;
 }
 
-function dataResult(key: string, scope: CheckScope, found: string, fix: string, inputs: CheckResult["why"]["inputs"]): CheckResult {
+function dataResult(key: string, scope: CheckScope, found: string, fix: string, inputs: CheckResult["why"]["inputs"], what?: string): CheckResult {
   return {
     id: `DATA:${key}`,
     ruleId: "DATA",
-    title: "Missing data",
+    title: what ? `Missing info: ${what}` : "Missing info",
     status: "missing_data",
     severity: null,
     scope,
@@ -67,18 +67,19 @@ function dataChecks(b: Booking): CheckResult[] {
         `Two bookings share this ID (rows ${dup.slice(0, -1).join(", ")} and ${dup.at(-1)}), so we can't tell which items belong to which.`,
         "Give each booking its own Booking ID in both sheets, then upload again.",
         [input("Booking ID", b.bookingId)],
+        "Booking ID used twice",
       ),
     );
   }
   for (const [key, label] of REQUIRED_BOOKING_FIELDS) {
     const f = b[key] as FieldValue<unknown>;
-    if (f.value === null) out.push(dataResult(String(key), BOOKING_SCOPE, missingText(label, f), `Fill in ${label.toLowerCase()}.`, [input(label, f)]));
+    if (f.value === null) out.push(dataResult(String(key), BOOKING_SCOPE, missingText(label, f), `Fill in ${label.toLowerCase()}.`, [input(label, f)], label));
   }
   if (b.items.length === 0) {
-    out.push(dataResult("no-items", BOOKING_SCOPE, "This booking has no items.", "Add the booking's items (Items sheet rows with this Booking ID).", [input("Booking ID", b.bookingId)]));
+    out.push(dataResult("no-items", BOOKING_SCOPE, "This booking has no items.", "Add the booking's items (Items sheet rows with this Booking ID).", [input("Booking ID", b.bookingId)], "No products"));
   }
   for (const it of b.items) {
-    if (it.sku.value === null) out.push(dataResult(`sku:${it.itemId}`, itemScope(it), missingText(`${itemName(it)} SKU`, it.sku), "Fill in the SKU.", [input("SKU", it.sku)]));
+    if (it.sku.value === null) out.push(dataResult(`sku:${it.itemId}`, itemScope(it), missingText(`${itemName(it)} SKU`, it.sku), "Fill in the SKU.", [input("SKU", it.sku)], `${itemName(it)} SKU`));
   }
   return out;
 }
@@ -88,7 +89,7 @@ function noItemsResults(): CheckResult[] {
   return (["R-01", "R-03", "R-06", "R-09"] as RuleId[]).map((ruleId) => ({
     id: `${ruleId}:booking:no-items`,
     ruleId,
-    title: `${ruleId} · ${RULEBOOK[ruleId].shortName}`,
+    title: RULEBOOK[ruleId].plainName,
     status: "missing_data",
     severity: RULEBOOK[ruleId].severity,
     scope: BOOKING_SCOPE,

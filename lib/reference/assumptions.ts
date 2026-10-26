@@ -24,7 +24,7 @@ export const ASSUMPTIONS: Record<AssumptionId, Assumption> = {
   },
   A3: {
     id: "A3",
-    label: "the 1% tolerance in R-02 is measured against the item total",
+    label: "the 1% tolerance on the declared value is measured against the products' total (quantity × price)",
     why: "The rulebook doesn't say what the 1% is measured against.",
   },
   A4: {
@@ -44,7 +44,7 @@ export const ASSUMPTIONS: Record<AssumptionId, Assumption> = {
   },
   A7: {
     id: "A7",
-    label: "delivery appointment set to No for a business address (R-08 doesn't apply)",
+    label: "delivery appointment set to No for a business address (no delivery slot needed)",
     why: "Appointments are only needed for warehouse deliveries.",
   },
   A8: {

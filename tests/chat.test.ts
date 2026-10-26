@@ -371,3 +371,75 @@ describe("several yes/no questions open", () => {
     expect(r.reply).not.toContain("couldn't match");
   });
 });
+
+describe("problems asked back as plain questions", () => {
+  async function mugs(extra: ExtractOperation[] = []) {
+    let s = (await turn(newChatSession("x"), "mugs", [op("description", "ceramic mugs", "mugs", { op: "add_item", itemRef: "mugs" })])).session;
+    s = (await turn(s, "x", [])).session;
+    return { s, extra };
+  }
+
+  it("offers the tested fix for a mismatch, and 'yes' applies it", async () => {
+    const { s } = await mugs();
+    const r = await turn(s, "1800 mugs, 12 per carton, 90 cartons", [
+      op("quantity", "1800", "1800 mugs", { itemRef: "mugs" }),
+      op("unitsPerCarton", "12", "12 per carton", { itemRef: "mugs" }),
+      op("cartons", "90", "90 cartons", { itemRef: "mugs" }),
+    ]);
+    expect(r.reply).toContain("mugs: 12 per carton × 90 cartons = 1,080, but quantity says 1,800. Did you mean: change mugs quantity from 1,800 to 1,080? (Looks like two digits were swapped.)");
+    expect(r.reply).not.toMatch(/R-0\d/);
+    const y = await turn(r.session, "yes", []);
+    expect(y.session.booking.items[0].quantity).toMatchObject({ value: 1080, source: "fixed" });
+    expect(y.reply).toContain("Done — change mugs quantity from 1,800 to 1,080.");
+  });
+
+  it("asks before removing a dangerous product", async () => {
+    const { s } = await mugs();
+    const r = await turn(s, "also power banks 10000mAh", [op("description", "power banks 10000mAh", "power banks 10000mAh", { op: "add_item", itemRef: "power banks 10000mAh" })]);
+    expect(r.reply).toContain("Shall I remove power banks 10000mAh from this booking?");
+    const y = await turn(r.session, "yes remove it", []);
+    expect(y.session.booking.items.map((it) => it.description.value)).toEqual(["mugs"]);
+  });
+
+  it("asks about a warehouse slot and records the answer", async () => {
+    const r = await turn(newChatSession("x"), "to an Amazon warehouse, no slot booked", [op("destinationType", "Amazon warehouse", "Amazon warehouse"), op("appointmentBooked", "no", "no slot booked")]);
+    expect(r.reply).toContain("have you booked a slot?");
+    const y = await turn(r.session, "yes, booked it now", []);
+    expect(y.session.booking.appointmentBooked.value).toBe("Yes");
+  });
+
+  it("asks the battery question in plain words and records 'no'", async () => {
+    const r = await turn(newChatSession("x"), "portable chargers, HS 850760", [
+      op("description", "Portable charger", "portable chargers", { op: "add_item", itemRef: "portable chargers" }),
+      op("hsCode", "850760", "HS 850760", { itemRef: "portable chargers" }),
+    ]);
+    expect(r.reply).toContain("Does 'portable chargers' contain a lithium battery?");
+    const n = await turn(r.session, "no", []);
+    expect(Object.values(n.session.state.answers)).toEqual(["no"]);
+    expect(n.reply).toContain("noted that it doesn't");
+  });
+
+  it("never shows rule codes in any reply", async () => {
+    const s = await fullBooking();
+    const r = await turn(s, "Northfield Goods", [op("sellerName", "Northfield Goods", "Northfield Goods")]);
+    expect(r.reply).not.toMatch(/R-\d\d/);
+  });
+});
+
+describe("'What to tell us' checklist", () => {
+  it("ticks off what's been given and marks 'don't know' answers", async () => {
+    const { tellUsChecklist } = await import("@/lib/chat/checklist");
+    const empty = tellUsChecklist(newChatSession("x").booking, newChatSession("x").flags);
+    expect(empty.flatMap((g) => g.items).every((i) => i.state === "todo")).toBe(true);
+    const s = await fullBooking();
+    const items = tellUsChecklist(s.booking, s.flags).flatMap((g) => g.items);
+    const state = (label: string) => items.find((i) => i.label === label)!.state;
+    expect(state("Collection city")).toBe("done");
+    expect(state("Units per box")).toBe("done");
+    expect(state("Seller (company) name")).toBe("todo");
+    const unknown = structuredClone(s);
+    unknown.booking.grossWeightKg = { value: null, raw: null, source: "stated", location: null };
+    unknown.flags.grossUnknown = true;
+    expect(tellUsChecklist(unknown.booking, unknown.flags).flatMap((g) => g.items).find((i) => i.label === "Total weight")!.state).toBe("unknown");
+  });
+});

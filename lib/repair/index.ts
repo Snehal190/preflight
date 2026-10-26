@@ -7,6 +7,13 @@ import { itemName } from "../rules/helpers";
 import { itemTotal } from "../rules/r02";
 import { itemCartonTotal } from "../rules/r03r04";
 import { typoPattern } from "./typo";
+import { recomputeDerived } from "../booking/derived";
+import { RULEBOOK, type RuleId } from "../reference/rulebook";
+
+/** Seller-facing rule name in quotes, e.g. “Declared value matches the products”. */
+function named(ruleId: string): string {
+  return `“${RULEBOOK[ruleId as RuleId].plainName}”`;
+}
 
 // Fix-suggestion engine (spec §9). Proposes numeric edits, re-runs ALL rules on each single edit
 // and each pair, throws away anything that creates a new problem, and ranks what's left.
@@ -43,18 +50,20 @@ export function candidateEdits(b: Booking, report: CheckReport): Patch[] {
     const c = it.cartons.value;
     if (q === null || u === null || c === null || u * c === q) continue;
     if (!r03.some((r) => r.scope.kind === "item" && r.scope.itemId === it.itemId)) continue;
-    const sku = it.sku.value;
-    out.push({ target: "item", itemId: it.itemId, sku, field: "quantity", from: String(q), to: String(u * c) });
-    if (q % u === 0) out.push({ target: "item", itemId: it.itemId, sku, field: "cartons", from: String(c), to: String(q / u) });
-    if (q % c === 0) out.push({ target: "item", itemId: it.itemId, sku, field: "unitsPerCarton", from: String(u), to: String(q / c) });
+    const derived = (f: FieldValue<unknown>) => f.source === "derived";
+    // Label for messages: the SKU, or the product's name when there's no SKU (chat bookings).
+    const sku = it.sku.value ?? itemName(it);
+    if (!derived(it.quantity)) out.push({ target: "item", itemId: it.itemId, sku, field: "quantity", from: String(q), to: String(u * c) });
+    if (q % u === 0 && !derived(it.cartons)) out.push({ target: "item", itemId: it.itemId, sku, field: "cartons", from: String(c), to: String(q / u) });
+    if (q % c === 0 && !derived(it.unitsPerCarton)) out.push({ target: "item", itemId: it.itemId, sku, field: "unitsPerCarton", from: String(u), to: String(q / c) });
   }
 
-  if (failing("R-04").length && b.cartons.value !== null) {
+  if (failing("R-04").length && b.cartons.value !== null && b.cartons.source !== "derived") {
     const total = itemCartonTotal(b);
     if (total !== null && total > 0) out.push({ target: "booking", field: "cartons", from: rawOf(b.cartons), to: String(total) });
   }
 
-  if (r02 && b.declaredValue.value !== null) {
+  if (r02 && b.declaredValue.value !== null && b.declaredValue.source !== "derived") {
     const total = itemTotal(b);
     if (total !== null) out.push({ target: "booking", field: "declaredValue", from: rawOf(b.declaredValue), to: total.toFixed() });
   }
@@ -92,6 +101,7 @@ export function applyPatches(b: Booking, patches: Patch[]): Booking {
       (it as Record<string, unknown>)[p.field] = fixed(it[p.field], v);
     }
   }
+  recomputeDerived(next);
   return next;
 }
 
@@ -155,14 +165,14 @@ function evaluate(b: Booking, ctx: CheckContext, baseProblems: Set<string>, base
     const p = patches[0];
     const primary = primaryRule(p);
     const others = clearedRules.filter((r) => r !== primary);
-    evidence = `${joinAnd(others)} also pass${others.length === 1 ? "es" : ""}${exact ? " exactly" : ""} if ${fieldLabel(p)} = ${fmtPatchValue(p, p.to)}, so ${fmtPatchValue(p, p.to)} is very likely correct.`;
+    evidence = `${joinAnd(others.map(named))} also pass${others.length === 1 ? "es" : ""}${exact ? " exactly" : ""} if ${fieldLabel(p)} = ${fmtPatchValue(p, p.to)}, so ${fmtPatchValue(p, p.to)} is very likely correct.`;
   } else {
-    evidence = `With ${patches.length === 1 ? "this change" : "these changes"}, ${joinAnd(clearedRules)} pass${clearedRules.length === 1 ? "es" : ""}.`;
+    evidence = `With ${patches.length === 1 ? "this change" : "these changes"}, ${joinAnd(clearedRules.map(named))} pass${clearedRules.length === 1 ? "es" : ""}.`;
   }
   // The non-blocking R-05 note (preferred carrier over its limit) isn't a failure, but say so.
   const prefCard = after.results.find((r) => r.id === "R-05:booking:preferred");
   if (prefCard && !baselineHasPreferred) evidence += ` Note: ${prefCard.found}`;
-  const badge = `Tested: clears ${joinAnd(clearedRules)}, no new issues.`;
+  const badge = `Tested: fixes ${joinAnd(clearedRules.map(named))}, no new issues.`;
   return { fix: { patches, summary, evidence, typo, badge, clears: clearedRules, score }, clearedIds };
 }
 

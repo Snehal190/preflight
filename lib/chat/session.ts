@@ -31,6 +31,13 @@ export const ChatFlagsSchema = z.object({
   pendingHs: z.object({ itemId: z.string(), code: z.string(), reason: z.string() }).nullable(),
   itemCounter: z.number().int(),
   generatedSkus: z.number().int(),
+  /** A check problem asked as a yes/no question (one at a time, so "yes" is never ambiguous). */
+  pendingIssue: z
+    .object({ resultId: z.string(), prompt: z.string(), action: z.any() })
+    .nullable()
+    .default(null),
+  /** Problems already asked about (by finding), so we don't nag every turn. */
+  issuesAsked: z.array(z.string()).default([]),
 });
 export type ChatFlags = z.infer<typeof ChatFlagsSchema>;
 
@@ -94,6 +101,8 @@ export function newChatSession(id: string): ChatSession {
       pendingHs: null,
       itemCounter: 0,
       generatedSkus: 0,
+      pendingIssue: null,
+      issuesAsked: [],
     },
     lastQuestion: null,
     aiUnavailable: false,

@@ -83,3 +83,13 @@ unless the product owner approved it. Assumptions with an `A` ID are also in
     ("add a pallet" supports 1).
   - "No SKU" style answers never become a SKU; after asking once, ITEM-n is used (A4).
   - Gemini calls use `thinkingLevel: LOW` (default thinking exceeded the 20 s deadline in testing).
+
+## Approved changes after the first build (2026-10-26)
+
+| Change | Why | Code |
+|---|---|---|
+| **Voice transcripts auto-send** after a 4-second "Sending… tap to edit" countdown (replaces spec §12.1 "never auto-send"). Any tap or edit cancels it. Numbers are still read back digit by digit. | Product owner's request; the countdown keeps a chance to fix misheard numbers. | `app/chat/[id]/View.tsx` |
+| **Live words while speaking** use the browser's speech recognition (Chrome/Edge/Safari; Chrome sends audio to Google's speech service). Gemini still makes the final transcript; if it fails, the live words are used with a warning. Recording stops after 2.5 s of silence. | Product owner approved. | `app/components/VoiceRecorder.tsx` |
+| **No rule codes on seller screens.** Cards, chips and chat use plain names ("Units, boxes and quantity add up"); statuses read Must fix (Red), Please check (Amber), Advice (Info), Missing info, Question for you. The code and official wording appear in each card's Why? panel and on the Rules page. | Sellers don't know the rulebook. | `lib/reference/rulebook.ts`, `app/rules/` |
+| **Chat asks about problems** found by the checks, in plain words, once each; a tested fix is offered as "Did you mean …?" and applied on "yes". | Product owner's request. | `lib/chat/clarify.ts` |
+| **Worked-out values recalculate** after any applied fix and are never suggested as edits themselves. | A fix must not freeze a value code calculated. | `lib/booking/derived.ts` |

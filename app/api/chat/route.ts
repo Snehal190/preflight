@@ -6,7 +6,6 @@ import { LIST_FOR_PROMPT } from "@/lib/chat/normalize";
 import { londonToday } from "@/lib/dates/today";
 import { evaluate, refreshAiAdvice } from "@/lib/booking/server";
 import type { Booking } from "@/lib/types";
-import { newBlockingIssues } from "@/lib/chat/announce";
 
 export const maxDuration = 60;
 
@@ -32,17 +31,10 @@ export async function POST(req: Request) {
     const extraction = aiConfigured()
       ? await extractFromMessage(text, { bookingSoFar: soFar(session.booking), allowedValues: LIST_FOR_PROMPT, today, lastQuestion: session.lastQuestion })
       : ({ ok: false, reason: "unavailable" } as const);
-    const before = await evaluate(session.booking, session.state);
     const turn = await handleTurn(session, text, transcript, extraction, { today, suggestHs: (d) => suggestHsCode(d) });
     const next = turn.session;
     [next.state] = await refreshAiAdvice([next.booking], [next.state]);
     const evaluation = await evaluate(next.booking, next.state);
-    // Say so in the reply when this turn created a Red or a question (spec: everything re-runs).
-    const raised = newBlockingIssues(before, evaluation);
-    if (raised.length) {
-      const last = next.messages[next.messages.length - 1];
-      last.text += `\n\n**Heads-up — new issue${raised.length > 1 ? "s" : ""}:**\n${raised.map((r) => `• ${r}`).join("\n")}`;
-    }
     if (turn.justConfirmed) {
       const last = next.messages[next.messages.length - 1];
       last.text += ` Your checks: ${evaluation.headline}. Open the check page to fix anything, then continue to the carrier.`;

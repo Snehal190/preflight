@@ -9,6 +9,10 @@ import { itemName } from "../rules/helpers";
 import { matchAllowed, mentionsOtherCurrency, parseAmount, type AmountKind, type ListKind } from "./normalize";
 import { resolveDate } from "./dates";
 import { blank, isGiven, type ChatSession } from "./session";
+import { runChecks } from "../rules";
+import { contextFor } from "../booking/evaluate";
+import { applyPatches, suggestFixes, withFixes } from "../repair";
+import { issueQuestions, type IssueAction } from "./clarify";
 
 // The chat engine (spec §12). Deterministic: Gemini's extraction is the only AI input, and every
 // value is verified and interpreted here. Replies are built from templates — never by the model.
@@ -310,12 +314,12 @@ async function applyOp(s: ChatSession, opIn: ExtractOperation, messageId: string
         s.flags.pendingHs = { itemId: it.itemId, code: sug.code, reason: sug.reason };
       } else {
         if (!s.flags.declined.includes(key)) s.flags.declined.push(key);
-        notes.recorded.push(`No HS code for ${name} — it will show as R-01 (Red) until you add one.`);
+        notes.recorded.push(`No HS code for ${name} — customs needs one, so this will block the booking until you add it.`);
       }
       return;
     }
     if (!s.flags.declined.includes(key)) s.flags.declined.push(key);
-    if (field === "countryOfOrigin") notes.recorded.push(`No country of origin for ${name} — it will show as R-09 (Amber).`);
+    if (field === "countryOfOrigin") notes.recorded.push(`No country of origin for ${name} — customs uses it to work out duty, so we'll flag it for you to check.`);
     return;
   }
 
@@ -570,13 +574,14 @@ function confirmAll(s: ChatSession): void {
   s.flags.dateConfirmed = true;
 }
 
-type YesNoKind = "readback" | "hs" | "date" | "sku";
+type YesNoKind = "readback" | "hs" | "date" | "sku" | "issue";
 
 /** The yes/no questions that were in the last bot message, in the order they were asked. */
 function pendingYesNo(s: ChatSession, asked: string): { kind: YesNoKind; item?: Item }[] {
   const out: { kind: YesNoKind; item?: Item; at: number }[] = [];
   if (s.flags.readbackShown && !s.flags.readbackConfirmed && asked === READBACK_QUESTION) out.push({ kind: "readback", at: 0 });
   if (s.flags.pendingHs && asked.includes("Shall I use it?")) out.push({ kind: "hs", at: asked.indexOf("Shall I use it?") });
+  if (s.flags.pendingIssue && asked.includes(s.flags.pendingIssue.prompt)) out.push({ kind: "issue", at: asked.indexOf(s.flags.pendingIssue.prompt) });
   if (s.booking.readyDate.value && !s.flags.dateConfirmed && asked.includes("Ready to ship") && asked.includes("— correct?")) out.push({ kind: "date", at: asked.indexOf("Ready to ship") });
   for (const it of s.booking.items) {
     const q = `Does ${it.description.value ?? itemName(it)} have a SKU?`;
@@ -622,6 +627,7 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
       sku: /\bsku\b/i,
       date: /\b(date|day|monday|tuesday|wednesday|thursday|friday|saturday|sunday|ready)\b/i,
       readback: /\b(all|everything|booking)\b/i,
+      issue: /\b(change|fix|remove|slot|appointment|booked|contains?|battery|batteries|mean)\b/i,
     };
     const named = pending.filter((p) => hints[p.kind].test(trimmed));
     if (named.length === 1) pending = named;
@@ -651,7 +657,7 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
       } else if (it && !s.flags.declined.includes(`hsCode:${it.itemId}`)) {
         s.flags.declined.push(`hsCode:${it.itemId}`);
       }
-      yesNoNotes.push(yes ? `OK — HS code ${p.code} recorded for ${it?.description.value ?? "that product"} (you confirmed it; you're responsible for it).` : "OK — no HS code for now. R-01 will stay Red until you add one.");
+      yesNoNotes.push(yes ? `OK — HS code ${p.code} recorded for ${it?.description.value ?? "that product"} (you confirmed it; you're responsible for it).` : "OK — no HS code for now. Customs needs one, so the booking stays blocked until you add it.");
     } else if (q.kind === "date") {
       if (yes) {
         s.flags.dateConfirmed = true;
@@ -663,6 +669,13 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
           return say("OK — when will it be ready to ship? (DD-MM-YYYY is safest.)");
         }
       }
+    } else if (q.kind === "issue") {
+      const pi = s.flags.pendingIssue!;
+      s.flags.pendingIssue = null;
+      yesNoNotes.push(resolveIssue(s, pi.action as IssueAction, yes, messageId));
+      derive(s);
+      s.flags.readbackShown = false;
+      s.flags.readbackConfirmed = false;
     } else if (q.kind === "sku") {
       const skuItem = q.item!;
       if (!s.flags.skuAsked.includes(skuItem.itemId)) s.flags.skuAsked.push(skuItem.itemId);
@@ -679,7 +692,7 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
         yesNoNotes.push(`**ASSUMPTION:** no SKU given, using ${sku}.`);
       }
     }
-    if (!realOps) return say(nextStep(s, yesNoNotes, transcript));
+    if (!realOps) return say(nextStep(s, yesNoNotes, transcript, deps.today));
   }
 
   if (ex.newShipment) {
@@ -743,21 +756,65 @@ export async function handleTurn(prev: ChatSession, text: string, transcript: bo
   if (!head.length && !notes.recorded.length && !notes.problems.length && !derivedNotes.length && !notes.asks.length && !s.flags.pendingHs) {
     head.push("I didn't catch any booking details in that.");
   }
-  return say(nextStep(s, head, transcript, notes.asks, notes.dateChanged));
+  return say(nextStep(s, head, transcript, deps.today, notes.asks, notes.dateChanged));
 }
 
-/** Questions for this turn (max 3), or the read-back when nothing is missing. */
-function nextStep(s: ChatSession, head: string[], voice: boolean, asks: string[] = [], dateJustSet = false): string {
+/** Applies the seller's yes/no to a problem we asked about; returns what to say. */
+function resolveIssue(s: ChatSession, a: IssueAction, yes: boolean, messageId: string): string {
+  switch (a.kind) {
+    case "fix":
+      if (!yes) return "OK — tell me which number is right and I'll update it.";
+      s.booking = applyPatches(s.booking, a.patches);
+      return `Done — ${a.summary.charAt(0).toLowerCase()}${a.summary.slice(1)}.`;
+    case "dg":
+      s.state = { ...s.state, answers: { ...s.state.answers, [a.answerKey]: yes ? "yes" : "no" } };
+      return yes ? "Thanks — that counts as dangerous goods, so it can't go on a normal road shipment." : "Thanks — noted that it doesn't.";
+    case "remove": {
+      if (!yes) return `OK — ${a.name} stays, but the booking can't go by normal road until it's removed or shipped separately as dangerous goods.`;
+      s.booking.items = s.booking.items.filter((it) => it.itemId !== a.itemId);
+      return `Removed ${a.name}.`;
+    }
+    case "appointment":
+      if (!yes) return "OK — you can still go ahead, but you'll be asked to accept that risk before take-off. Book a slot if you can.";
+      s.booking.appointmentBooked = { value: "Yes", raw: "yes", source: "stated", location: { kind: "chat", messageId } };
+      return "Great — delivery slot booked.";
+  }
+}
+
+/** Questions for this turn (max 3): what we asked, problems found, then missing details. */
+function nextStep(s: ChatSession, head: string[], voice: boolean, today: string, asks: string[] = [], dateJustSet = false): string {
   const questions: string[] = [...asks];
+  let yesNoOpen = false;
   if (s.flags.pendingHs) {
     const it = s.booking.items.find((x) => x.itemId === s.flags.pendingHs!.itemId);
     questions.push(
       `**Suggestion — please verify; you are legally responsible for the code:** HS ${s.flags.pendingHs.code} for ${it?.description.value ?? "that product"} (${s.flags.pendingHs.reason}). Shall I use it?`,
     );
+    yesNoOpen = true;
   }
   if (dateJustSet && s.booking.readyDate.value && !s.flags.dateConfirmed) {
     questions.unshift(`Ready to ship ${fmtDateSpoken(s.booking.readyDate.value)} (${fmtDateField(s.booking.readyDate.value)}) — correct?`);
+    yesNoOpen = true;
   }
+
+  // Problems the checks found, asked once each in plain words (spec: say where they went wrong).
+  const ctx = contextFor(s.state, today);
+  const report = runChecks(s.booking, ctx);
+  const results = withFixes(report, suggestFixes(s.booking, ctx, report), s.booking);
+  const issues = issueQuestions(results, s.booking, s.state.acknowledged.map((a) => a.id));
+  s.flags.pendingIssue = null;
+  for (const q of issues) {
+    if (questions.length >= 3) break;
+    if (s.flags.issuesAsked.includes(q.signature)) continue;
+    if (q.action) {
+      if (yesNoOpen) continue; // one yes/no at a time keeps "yes" unambiguous
+      s.flags.pendingIssue = { resultId: q.resultId, prompt: q.text, action: q.action };
+      yesNoOpen = true;
+    }
+    questions.push(q.text);
+    s.flags.issuesAsked.push(q.signature);
+  }
+
   for (const m of missingQuestions(s)) {
     if (questions.length >= 3) break;
     questions.push(m.text);
@@ -768,6 +825,8 @@ function nextStep(s: ChatSession, head: string[], voice: boolean, asks: string[]
     s.lastQuestion = questions.slice(0, 3).join(" ");
   } else if (!s.flags.readbackConfirmed) {
     parts.push(readBack(s, voice));
+    const open = issues.filter((q) => s.flags.issuesAsked.includes(q.signature));
+    if (open.length) parts.push(`Still to sort out (you can also fix these on the check page):\n${open.map((q) => `• ${q.text}`).join("\n")}`);
     s.flags.readbackShown = true;
     s.lastQuestion = READBACK_QUESTION;
   } else {

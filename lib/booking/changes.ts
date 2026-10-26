@@ -3,6 +3,7 @@ import type { CheckResult } from "../rules/types";
 import { fmtDateLong, fmtGBP, fmtNum } from "../format";
 import { itemName } from "../rules/helpers";
 import { BOOKING_EDITABLE, ITEM_EDITABLE } from "./edit";
+import { RULEBOOK, type RuleId } from "../reference/rulebook";
 import type { Evaluation } from "./state";
 
 // Change chips (spec §12.8): `Pallets 3 → 4` · `R-05: Red → Pass` · `Cost £660 → £880` · `Carrier unchanged`.
@@ -23,7 +24,7 @@ export function statusLabel(r: CheckResult | undefined): string {
     case "not_applicable":
       return "N/A";
     case "missing_data":
-      return "Missing data";
+      return "Missing info";
     case "needs_answer":
       return "Needs answer";
     case "fail":
@@ -32,9 +33,10 @@ export function statusLabel(r: CheckResult | undefined): string {
 }
 
 function resultLabel(r: CheckResult): string {
-  if (r.ruleId === "DATA") return `Missing data (${r.id.slice(5).split(":")[0]})`;
+  if (r.ruleId === "DATA") return `Missing info (${r.id.slice(5).split(":")[0]})`;
+  if (r.ruleId === "INFO") return "Advice";
   const who = r.scope.kind === "item" ? ` (${r.scope.sku ?? "item"})` : r.id.endsWith(":preferred") ? " (preferred carrier)" : "";
-  return `${r.ruleId}${who}`;
+  return `${RULEBOOK[r.ruleId as RuleId].plainName}${who}`;
 }
 
 export function changeChips(prevB: Booking, prevE: Evaluation, nextB: Booking, nextE: Evaluation): string[] {
